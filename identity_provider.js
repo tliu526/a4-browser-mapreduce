@@ -31,6 +31,7 @@ function request_handler(request,response) {
 	request.on('end', function () {
 		var post = qs.parse(data);	
 		if (post.SAMLRequest != null) {
+		    console.log('Just received a SAML request. Request: ' + post.SAMLRequest);
 		    var html = create_login_page();
 		    response.writeHead(200, {
 			    'Content-Type' : 'text/html',
@@ -39,6 +40,7 @@ function request_handler(request,response) {
 				});
 		    response.end(html);
 		} else if (post.token != null) {
+		    console.log('Just received an authentication token. Token: ' + post.token);
 		    var token = post.token;
 		    console.log(token);
 		}

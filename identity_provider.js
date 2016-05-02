@@ -9,7 +9,7 @@ var http = require('http');
 var XMLWriter = require('xml-writer');
 var qs = require('querystring');
 
-var fs = requrie('fs');
+var fs = require('fs');
 var file = 'users.db';
 var exists = fs.existsSync(file);
 var sqlite3 = require('sqlite3').verbose();
@@ -22,43 +22,55 @@ const PORT = 8890;
  */
 function request_handler(request,response) {
     //First request will be a SAML authentication request. TODO The IDP must then prompt the user to enter credentials (how??)
-    if (request.method.equals('POST')) {
-	
+    if (request.method == 'POST') {
 	//Convert POST data into an object
 	var data = '';
-	request.on('data',function(chunk) {
-	    data += chunk;
-	});
-	request.on('end',function() {
-	    var post = qs.parse(data)
-	});
-	
-	//Get SAMLRequest in string
-	var samlString = post.SAMLRequest;
-	
-	//Convert to XML doc
-	var samlXml = new XmlDocument(samlString);
-	var samlAuthnRequest = samlXml.childNamed('samlp:AuthnRequest');
-	var issuer = samlAuthnRequest.childNamed('saml:Issuer');
-	
-	if (!issuer.val.equals('PUT NAME OF SERVICE PROVIDER HERE')) {
-	    console.log('Identity provider does not service this provider');
-	}
-	
-	//TODO URL-decode, then base64-decode, then inflate
-	
-	
+	request.on('data', function (chunk) {
+		data += chunk;
+	    });
+	request.on('end', function () {
+		var post = qs.parse(data);	
+		if (post.SAMLRequest != null) {
+		    var html = create_login_page();
+		    response.writeHead(200, {
+			    'Content-Type' : 'text/html',
+				'Content-Length' : html.length,
+				'Access-Ctonrol-Allow-Origin': '*'
+				});
+		    response.end(html);
+		} else if (post.token != null) {
+		    var token = post.token;
+		    console.log(token);
+		}
+	    });
     }
-    
-    //Second request will be the user's credentials. The IDP must check in the SQLite database for the user, then return a SAML assertion
+   
+}
 
-    //TODO get credentials
+//Takes a parsed qs object and extracts the SAML request
+function extract_saml(post) {
+    //Get saml in string
+    var samlString = post.SAMLRequest;
 
-    //Create SAML string assertion
-    var assertion = create_assertion(user);
-    
-    //TODO Now send it back to the user
-    
+    //Convert to XML doc                                               
+    var samlXml = new XmlDocument(samlString);
+    var samlAuthnRequest = samlXml.childNamed('samlp:AuthnRequest');
+    var issuer = samlAuthnRequest.childNamed('saml:Issuer');
+
+    if (!issuer.val.equals('PUT NAME OF SERVICE PROVIDER HERE')) {
+	console.log('Identity provider does not service this provider');
+    }
+
+}
+
+function create_login_page() {
+    var html = '<!DOCTYPE html>';
+    html += '<form action = \"http://localhost:8890\" method=\"POST\">';
+    html += 'Authentication token:<br>';
+    html += '<input type=\"text\" name=\"token\"><br>';
+    html += '<input type=\"submit\" value=\"Submit\">';
+    html += '</form>';
+    return html;
 }
 
 
@@ -164,7 +176,7 @@ function create_assertion(user) {
 }
 
 function main() {
-    create_assertion();
+    //create_assertion();
     var server = http.createServer(request_handler);
     server.listen(PORT, function(){
 	console.log("Identity provider listening on: http://localhost:%s", PORT);

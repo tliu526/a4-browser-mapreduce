@@ -20,7 +20,22 @@ function request_handler(request, response){
 //    response.end('Hello world! Path hit: ' + request.url);
    
     if(request.method == 'GET'){
-        var html = create_task_html(add.toString(), "add", "1,2,3");
+        var form = create_SAML_form();
+	var script = wrap_form();
+	var html = '<html>\n';
+	html += form + '\n';
+	html += '</html>';
+
+	response.writeHead(200, {
+	    'Content-Type' : 'text/html',
+	    'Content-Length' : html.length,
+	    'Access-Control-Allow-Origin' : '*'
+	});
+	response.end(html);
+
+	/*
+
+	var html = create_task_html(add.toString(), "add", "1,2,3");
         //console.log(html);
         response.writeHead(200, {
             'Content-Type' : 'text/html',
@@ -29,6 +44,10 @@ function request_handler(request, response){
             'Access-Control-Allow-Origin' : '*'
         });
         response.end(html);
+	
+	*/
+
+
     }
     else if(request.method == 'POST'){
         console.log('got a post request!');
@@ -52,6 +71,31 @@ var map_tasks = []; //Queue of structs.Tasks
 var reduce_tasks = []; //Queue of structs.Tasks
 
 var job_id = 0; //Global job ID 
+
+
+/**
+ * Creates an HTML form to send to the user with a SAML Authentication Request
+ * TODO Put real values for SAMLRequest and RelayState
+ */
+function create_SAML_form() {
+    var form = '<form method=\"POST\" action=\"http://localhost:8890\" id=\"form\">\n';
+    form += '<input type=\"hidden\" name=\"SAMLRequest\" value = \"request\" />\n';
+    form += '<input type=\"hidden\" name=\"RelayState\" value=\"state\" />\n';
+    form += '<input type=\"submit\" value=\"Click here to be authenticated\" />\n';
+    form += '</form>\n';
+    return form;
+}
+
+/**
+ * Wraps an HTML form (named form) in a script that automatically submits it
+ */
+function wrap_form() {
+    var script = '<script type=\"text/javascript\">\n';
+    script += 'function submitForm() {\n';
+    script += 'document.getElementById(\"form\").submit();\n';
+    script += '</script>';
+    return script;
+}
 
 
 /**

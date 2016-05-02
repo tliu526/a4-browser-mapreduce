@@ -174,7 +174,7 @@ function test(){
     console.log(job.get_output());
 }
 
-//TEST FUNCTION FOR MAPREDUCE
+//TEST MAP FOR MAPREDUCE
 function wc_map(k, v){
     var vals = v.split(" ");
     var res = [];
@@ -186,6 +186,7 @@ function wc_map(k, v){
     return res;
 }
 
+//TEST REDUCE FOR MAPREDUCE
 function wc_red(k, l){
     var result = 0;
     for (var i = 0; i < l.length; i++){

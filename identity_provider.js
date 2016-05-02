@@ -49,6 +49,7 @@ function request_handler(request,response) {
 		    console.log('Just received an authentication token. Token: ' + post.token);
 		    var token = post.token;
 		    if (validate_user(token)) {
+			var assertion = create_assertion(token);
 			//TODO respond with a SAMLAssertion verifying user
 		    } else {
 			//TODO display 'access denied' page
@@ -170,6 +171,7 @@ function create_assertion(user) {
     writer.endElement();
     
     //Attribute and AttributeValue
+    //Identifies the user as a resource volunteer
     writer.startElement('saml:Attribute');
     writer.startElement('AttributeValue');
     writer.text('Resource volunteer');
@@ -180,7 +182,7 @@ function create_assertion(user) {
     writer.endElement();
     
     var xml_string = writer.toString();
-    console.log(xml_string);
+    return xml_string;
 }
 
 function main() {

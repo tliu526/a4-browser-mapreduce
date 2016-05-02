@@ -6,7 +6,6 @@
 //"Include" statements
 var http = require('http');
 var url = require('url');
-var request = require('request');
 var structs = require('./structs');
 var map_red = require('./map_red');
 
@@ -109,17 +108,27 @@ function create_volunteer_form() {
 /**
  * Send a new user's token to the IDP to allow for future authentication
  */
-function send_new_user(user,expires) {
+function send_new_user(newUser,expires) {
     var options = {
-	url : 'http://localhost:8890',
-	method : 'POST'
-	form : { 'newUser': user, 'expires': expires}
+	host: 'localhost',
+	path: '/',
+	port: '8890',
+	method: 'POST',
     }
-    request(options, function(error,response,body) {
-	    if (!error && response.statusCode == 200) {
-		console.log(body);
-	    }
-	});
+
+    callback = function(response) {
+	var str = '';
+	response.on('data',function(chunk) {
+		str += chunk;
+	    });
+	response.on('end', function () {
+		console.log(str);
+	    });
+    }
+
+    var req = http.request(options,callback);
+    req.write('newUser=' + newUser + '&expires=' + expires);
+    req.end();
 }
 
 

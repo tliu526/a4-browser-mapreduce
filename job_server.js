@@ -7,6 +7,7 @@
 var http = require('http');
 var url = require('url');
 var structs = require('./structs');
+var map_red = require('./map_red');
 
 /**** WEB SERVER FUNCTIONS AND VARS ****/
 const PORT = 8889;
@@ -20,7 +21,17 @@ function request_handler(request, response){
 //    response.end('Hello world! Path hit: ' + request.url);
    
     if(request.method == 'GET'){
-        var html = create_task_html(add.toString(), "add", "1,2,3");
+        var nums = ''
+        for(var i = 0; i < 5; i++){
+            var n = Math.floor(Math.random() * (10));
+            nums += n.toString();
+
+            if(i < 5 - 1){
+                nums += ',';                
+            }
+        }
+
+        var html = create_task_html(add.toString(), "add", nums);
         //console.log(html);
         response.writeHead(200, {
             'Content-Type' : 'text/html',
@@ -30,13 +41,14 @@ function request_handler(request, response){
         });
         response.end(html);
     }
+
     else if(request.method == 'POST'){
         console.log('got a post request!');
         var body = '';
         request.on('data', function (data) {
             body += data;
         });
-        request.on('end', function () {
+        request.on('end', function() {
             console.log("Body: " + body);
             //Parse the results here!!
         });
@@ -103,24 +115,13 @@ function add(){
     var total = vals.reduce(function(a,b){
         return a + b;
     });
-    //alert(total);
-    //var xhttp = new XMLHTTPRequest();
-    //xhttp.open("POST", "http://localhost:8889", true);
-    //xhttp.send("result="+total);
+
+    //Create and send back POST form
     var request = createCORSRequest("post", "http://localhost:8889");
+
     if(request){
         request.send(total);
     }
-/*
-    var form = createElement("form", {
-        action : "http://localhost:8889",
-        method : "POST"
-    });
-    form.setAttribute("action", "http://localhost:8889");
-    form.setAttribute("method", "POST");
-    document.body.appendChild(form);
-    form.submit();
-*/
 }
 
 function createCORSRequest(method, url){
@@ -144,4 +145,55 @@ function main(){
     });
 }
 
+function test(){
+    var t = new structs.Task('id3', function(){console.log('hi')}, 'dataaaaa');
+    console.log(t['id']);
+    console.log(t['func']);
+    console.log(t['data']);
+
+    var data = [
+    ['frase primera', 'primer trozo de informacion para procesado primer trozo'],
+    ['segunda frase', 'segundo trozo de informacion trozo de'],
+    ['cacho 3', 'otro trozo para ser procesado otro otro otro trozo'],
+    ['cuarta frase', 'primer trozo de informacion para procesado primer trozo'],
+    ['frase 5', 'segundo trozo de informacion trozo de'],
+    ['sexto cacho', 'otro trozo para ser procesado otro otro otro trozo']
+    ];
+
+    var job = new map_red.Job(wc_map, wc_red, data);
+    var num_tasks = job.create_map_tasks(6);
+    console.log("The number of map tasks:" + num_tasks);
+
+    while(!job.is_complete()){
+        var task = job.get_task();
+        var out = map_red.process_task(task);
+        job.submit_output(task['id'], out);
+    }
+
+    console.log("Final output");
+    console.log(job.get_output());
+}
+
+//TEST FUNCTION FOR MAPREDUCE
+function wc_map(k, v){
+    var vals = v.split(" ");
+    var res = [];
+    for (var i = 0; i < vals.length; i++){
+        var tup = [vals[i], 1];
+        res.push(tup);
+    }
+
+    return res;
+}
+
+function wc_red(k, l){
+    var result = 0;
+    for (var i = 0; i < l.length; i++){
+        result += l[i];
+    }
+
+    return result;
+}
+
+test();
 main();

@@ -21,8 +21,9 @@ const PORT = 8890;
  * Handle incoming requests 
  */
 function request_handler(request,response) {
-    //First request will be a SAML authentication request. TODO The IDP must then prompt the user to enter credentials (how??)
+    
     if (request.method == 'POST') {
+	
 	//Convert POST data into an object
 	var data = '';
 	request.on('data', function (chunk) {
@@ -31,6 +32,7 @@ function request_handler(request,response) {
 	request.on('end', function () {
 		var post = qs.parse(data);	
 		if (post.SAMLRequest != null) {
+		    //Initial SAMLRequest
 		    console.log('Just received a SAML request. Request: ' + post.SAMLRequest);
 		    var html = create_login_page();
 		    response.writeHead(200, {
@@ -40,9 +42,14 @@ function request_handler(request,response) {
 				});
 		    response.end(html);
 		} else if (post.token != null) {
+		    //Response from user login attempt
 		    console.log('Just received an authentication token. Token: ' + post.token);
 		    var token = post.token;
-		    console.log(token);
+		    if (validate_user(token)) {
+			//TODO redirect to service provider with access
+		    }
+
+
 		}
 	    });
     }
@@ -80,18 +87,24 @@ function create_login_page() {
  * Check SQLite database for a user's privileges
  */
 function validate_user(user) {
-    db.get('SELECT ' + user + 'FROM USERS',function(err,row){ 
-	var token = row.token;
-	var expire = row.expire;
+    var token;
+    var validated = false;
+    db.get('SELECT ' + user + ' FROM USERS',function(err,row){ 
+	    if (typeof row == "undefined") {
+		console.log('User-specified token not found in database. Access denied.');
+	    } else {
+		var token = row.token;
+		var expire = row.expire;
+		var currentDateTime = new Date().getTime();
+		if (expire < currentDateTime) {
+		    console.log('User\'s token has expired. Access denied');
+		} else {
+		    console.log('Token is valid. Access granted');
+		    validated = true;
+		}
+	    }
     });
-    if (token == null) {
-	//TODO deny access
-    } else {
-	var currentdata = new Date();
-	var datetime = currentdate
-	//TODO allow access if not expired
-    }
-    
+    return validated;
 }
 
 
@@ -155,7 +168,10 @@ function create_assertion(user) {
 
     //Conditions, Audience Restriction, and Audience
     writer.startElement('saml:Conditions');
-    writer.writeAttribute('NotOnOrAfter','yyyy-mm-ddThh:mm:ss');
+    
+    //Use milliseconds
+    writer.writeAttribute('NotOnOrAfter','milliseconds');
+
     writer.startElement('saml:AudienceRestriction');
     writer.startElement('saml:Audience');
     writer.text('Service for which user is authorized');
@@ -179,6 +195,12 @@ function create_assertion(user) {
 
 function main() {
     //create_assertion();
+    var now = new Date().getTime();
+    console.log('Current millis: ' + now);
+    var stmt = db.prepare('INSERT INTO USERS VALUES (' + now + ', ' + now + 10000000000 + ');');
+    stmt.run();
+    console.log('Added a user with token ' + now + ' to databse');
+
     var server = http.createServer(request_handler);
     server.listen(PORT, function(){
 	console.log("Identity provider listening on: http://localhost:%s", PORT);

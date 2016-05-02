@@ -31,29 +31,46 @@ function request_handler(request,response) {
 	    });
 	request.on('end', function () {
 		var post = qs.parse(data);	
+
 		if (post.SAMLRequest != null) {
-		    //Initial SAMLRequest
+		    //Case 1: Initial SAMLRequest
 		    console.log('Just received a SAML request. Request: ' + post.SAMLRequest);
 		    var html = create_login_page();
 		    response.writeHead(200, {
 			    'Content-Type' : 'text/html',
 				'Content-Length' : html.length,
-				'Access-Ctonrol-Allow-Origin': '*'
+				'Access-Control-Allow-Origin': '*'
 				});
 		    response.end(html);
+		    
+		    
 		} else if (post.token != null) {
-		    //Response from user login attempt
+		    //Case 2: Response from user login attempt
 		    console.log('Just received an authentication token. Token: ' + post.token);
 		    var token = post.token;
 		    if (validate_user(token)) {
-			//TODO redirect to service provider with access
+			//TODO respond with a SAMLAssertion verifying user
+		    } else {
+			//TODO display 'access denied' page
 		    }
-
-
+		    
+		} else if (post.newUser != null) {
+		    //Case 3: New user's token to be added to database
+		    var newUser = post.newUser;
+		    var expires = post.expires
+		    console.log('Just received a new user. New user\'s token: ' + post.newUser + '. Adding new user to database');
+		    add_new_user(newUser,expires);
+		    
+		    //Respond with success message to job_server
+		    response.writeHead(200, {
+			    'Content-Type' : 'text/html',
+				'Access-Control-Allow-Origin': '*'
+				});
+		    var body = "Added user: " + newUser;
+		    response.end(body);
 		}
 	    });
     }
-   
 }
 
 //Takes a parsed qs object and extracts the SAML request
@@ -107,41 +124,14 @@ function validate_user(user) {
     return validated;
 }
 
-
-/**
- * Return current date time. Format: YYYY/MM/DD hh:mm:ss 
- * Citation: http://stackoverflow.com/questions/10211145/getting-current-date-and-time-in-javascript
- */
-function getDateTime() {
-    var now     = new Date(); 
-    var year    = now.getFullYear();
-    var month   = now.getMonth()+1; 
-    var day     = now.getDate();
-    var hour    = now.getHours();
-    var minute  = now.getMinutes();
-    var second  = now.getSeconds(); 
-    if(month.toString().length == 1) {
-        var month = '0'+month;
-    }
-    if(day.toString().length == 1) {
-        var day = '0'+day;
-    }   
-    if(hour.toString().length == 1) {
-        var hour = '0'+hour;
-    }
-    if(minute.toString().length == 1) {
-        var minute = '0'+minute;
-    }
-    if(second.toString().length == 1) {
-        var second = '0'+second;
-    }   
-    var dateTime = year+'/'+month+'/'+day+' '+hour+':'+minute+':'+second;   
-    return dateTime;
+function add_new_user(user,expires) {
+    var stmt = db.prepare('INSERT INTO USERS VALUES (' + user + ', ' + expires + ');'); 
+    stmt.run();
+    console.log('Added a user with token ' + user + ' to database');
 }
 
-
 /**
- * Create an XML string
+ * Create SAML assertion
  */
 function create_assertion(user) {
     var writer = new XMLWriter(true);

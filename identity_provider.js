@@ -194,13 +194,14 @@ function create_assertion(user) {
 }
 
 function main() {
-    //create_assertion();
+    //Add a new user to the DB and print out their authentication token
     var now = new Date().getTime();
     console.log('Current millis: ' + now);
     var stmt = db.prepare('INSERT INTO USERS VALUES (' + now + ', ' + now + 10000000000 + ');');
     stmt.run();
     console.log('Added a user with token ' + now + ' to databse');
 
+    //Create server and listen for requests
     var server = http.createServer(request_handler);
     server.listen(PORT, function(){
 	console.log("Identity provider listening on: http://localhost:%s", PORT);

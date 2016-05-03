@@ -21,10 +21,13 @@ function request_handler(request, response){
 //    response.end('Hello world! Path hit: ' + request.url);
    
     if(request.method == 'GET'){
-        var form = create_SAML_form();
-	var script = wrap_form();
+        
+	//Send a SAML Authentication Request in an HTML form
+	var saml_form = create_SAML_form();
+	var volunteer_form = create_volunteer_form();
 	var html = '<html>\n';
-	html += form + '\n';
+	html += saml_form + '\n';
+	html += volunteer_form + '\n';
 	html += '</html>';
 
 	response.writeHead(200, {
@@ -59,7 +62,9 @@ function request_handler(request, response){
     }
 
     else if(request.method == 'POST'){
-        console.log('got a post request!');
+        //TODO figure out if we're getting a SAMLResponse
+
+	console.log('got a post request!');
         var body = '';
         request.on('data', function (data) {
             body += data;
@@ -90,20 +95,42 @@ function create_SAML_form() {
     var form = '<form method=\"POST\" action=\"http://localhost:8890\" id=\"form\">\n';
     form += '<input type=\"hidden\" name=\"SAMLRequest\" value = \"request\" />\n';
     form += '<input type=\"hidden\" name=\"RelayState\" value=\"state\" />\n';
-    form += '<input type=\"submit\" value=\"Click here to be authenticated\" />\n';
+    form += '<input type=\"submit\" value=\"Access resources\" />\n';
+    form += '</form>\n';
+    return form;
+}
+
+function create_volunteer_form() {
+    var form = '<form method = \"POST\" action=\"http://localhost:8889\">\n';
+    form += '<input type=\"submit\" value=\"Volunteer resources\" />\n';
     form += '</form>\n';
     return form;
 }
 
 /**
- * Wraps an HTML form (named form) in a script that automatically submits it
+ * Send a new user's token to the IDP to allow for future authentication
  */
-function wrap_form() {
-    var script = '<script type=\"text/javascript\">\n';
-    script += 'function submitForm() {\n';
-    script += 'document.getElementById(\"form\").submit();\n';
-    script += '</script>';
-    return script;
+function send_new_user(newUser,expires) {
+    var options = {
+	host: 'localhost',
+	path: '/',
+	port: '8890',
+	method: 'POST',
+    }
+
+    callback = function(response) {
+	var str = '';
+	response.on('data',function(chunk) {
+		str += chunk;
+	    });
+	response.on('end', function () {
+		console.log(str);
+	    });
+    }
+
+    var req = http.request(options,callback);
+    req.write('newUser=' + newUser + '&expires=' + expires);
+    req.end();
 }
 
 
@@ -180,6 +207,7 @@ function createCORSRequest(method, url){
 
 /**** MAIN ****/
 function main(){
+    send_new_user(1010,2020);
     var server = http.createServer(request_handler);
     server.listen(PORT, function(){
         console.log("Server listening on: http://localhost:%s", PORT);

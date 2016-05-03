@@ -299,7 +299,7 @@ function main(){
     
     //For deployment on OpenShift
     server.listen(server_port, server_ip_address, function () {
-        console.log( "Listening on " + server_ip_address + ", server_port " + port )
+        console.log( "Listening on " + server_ip_address + ", server_port " + server_port )
     });
 
     /*

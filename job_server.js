@@ -62,7 +62,7 @@ function request_handler(request, response){
     }
 
     else if(request.method == 'POST'){
-        //TODO figure out if we're getting a SAMLResponse
+        //TODO figure out if we're getting a volunteer or SAML response
 
 	console.log('got a post request!');
         var body = '';
@@ -102,6 +102,7 @@ function create_SAML_form() {
 
 function create_volunteer_form() {
     var form = '<form method = \"POST\" action=\"http://localhost:8889\">\n';
+    form += ,'input type=\"hidden\" name=\"Volunteer\" value=\"True\" />\n';
     form += '<input type=\"submit\" value=\"Volunteer resources\" />\n';
     form += '</form>\n';
     return form;

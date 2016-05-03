@@ -12,6 +12,9 @@ var map_red = require('./map_red');
 var XMLWriter = require('xml-writer');
 var fs = require('fs');
 
+
+var local = true;
+
 /**** WEB SERVER FUNCTIONS AND VARS ****/
 const PORT = 8889;
 
@@ -289,19 +292,21 @@ function createCORSRequest(method, url){
 function main(){
     var server = http.createServer(request_handler);
 
-    /*
-    server.listen(PORT, function(){
-        console.log("Server listening on: http://localhost:%s", PORT);
-    });
-    */
-    var server_port = process.env.OPENSHIFT_NODEJS_PORT || 8080
-    var server_ip_address = process.env.OPENSHIFT_NODEJS_IP || '127.0.0.1'
-    
-    //For deployment on OpenShift
-    server.listen(server_port, server_ip_address, function () {
-        console.log( "Listening on " + server_ip_address + ", server_port " + server_port )
-    });
 
+    if(local){
+        server.listen(PORT, function(){
+            console.log("Server listening on: http://localhost:%s", PORT);
+        });
+    }
+    //For deployment on OpenShift
+    else {
+        var server_port = process.env.OPENSHIFT_NODEJS_PORT || 8080
+        var server_ip_address = process.env.OPENSHIFT_NODEJS_IP || '127.0.0.1'
+
+        server.listen(server_port, server_ip_address, function () {
+            console.log( "Listening on " + server_ip_address + ", server_port " + server_port )
+        });
+    }
     /*
     while(!cur_job.is_complete()){
         //do nothing, for now

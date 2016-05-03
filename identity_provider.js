@@ -33,6 +33,7 @@ function request_handler(request,response) {
 		var post = qs.parse(data);	
 
 		if (post.SAMLRequest != null) {
+		    var relayState = post.RelayState;
 		    //Case 1: Initial SAMLRequest
 		    console.log('Just received a SAML request. Request: ' + post.SAMLRequest);
 		    var html = create_login_page();
@@ -49,8 +50,20 @@ function request_handler(request,response) {
 		    console.log('Just received an authentication token. Token: ' + post.token);
 		    var token = post.token;
 		    if (validate_user(token)) {
-			var assertion = create_assertion(token);
-			//TODO respond with a SAMLAssertion verifying user
+			//Create a SAML response
+			var now = new Date().getTime();
+			var samlResponse = create_response(token,now);
+			//TODO base64 encode samlResponse
+			
+			//Send response in an HTML form
+			var form = create_response_form(samlResponse,relayState);
+			response.writeHead(200, {
+				'Content-Type' : 'text/html',
+				    'Content-Length' : form.length,
+				    'Access-Control-Allow-Origin' : '*'
+				    });
+			response.end(form);
+			console.log('Sent POST form to user');
 		    } else {
 			//TODO display 'access denied' page
 		    }
@@ -74,7 +87,10 @@ function request_handler(request,response) {
     }
 }
 
-//Takes a parsed qs object and extracts the SAML request
+/**
+ * TODO do we need this function?
+ * Takes a parsed qs object and extracts the SAML request
+ */
 function extract_saml(post) {
     //Get saml in string
     var samlString = post.SAMLRequest;
@@ -87,9 +103,11 @@ function extract_saml(post) {
     if (!issuer.val.equals('PUT NAME OF SERVICE PROVIDER HERE')) {
 	console.log('Identity provider does not service this provider');
     }
-
 }
 
+/**
+ * Creates and returns an html login page
+ */
 function create_login_page() {
     var html = '<!DOCTYPE html>';
     html += '<form action = \"http://localhost:8890\" method=\"POST\">';
@@ -99,6 +117,19 @@ function create_login_page() {
     html += '</form>';
     return html;
 }
+
+/**
+ * Creates and returns an html POST form
+ */
+function create_response_form(response,relayState) {
+    var form = '<form method=\"POST\" action=\"http://localhost:8889\">\n';
+    form += '<input type=\"hidden\" name=\"SAMLResponse\" value=\"' + response + '\" />\n';
+    form += '<input type=\"hidden\" name=\"RelayState\" value=\"' + relayState + '\" />\n';
+    form += '<input type=\"submit\" value=\"Submit\" />\n';
+    form += '</form>';
+    return form;
+}
+
 
 
 /**
@@ -132,15 +163,32 @@ function add_new_user(user,expires) {
 }
 
 /**
- * Create SAML assertion
+ * Create SAML Response with Assertion
  */
-function create_assertion(user) {
+function create_response(user,datetime) {
     var writer = new XMLWriter(true);
 
-    //Opening Assertion tag
+    //Start document
     writer.startDocument();
+
+    //Start samlp:Response element and write attributes
+    writer.startElement('samlp:Response');
+    writer.writeAttribute('xmlns:samlp','urn:oasis:names:tc:SAML:2.0:protoc
+ol');
+    writer.writeAttribute('xmlns:saml','urn:oasis:names:tc:SAML:2.0:asserti
+on');
+    writer.writeAttribute('Version','2.0');
+    writer.writeAttribute('IssueInstant',datetime);
+
+    //Issuer element                                                   
+    writer.startElement('saml:Issuer');
+    writer.text('http://localhost:8890');
+    writer.endElement;    
+
+    //Start saml:Assertion element and write attributes
     writer.startElement('saml:Assertion');
-    writer.writeAttribute('xmlns:saml','urn:oasis:names:tc:SAML:2.0:assertion');
+    writer.writeAttribute('xmlns:saml', 'urn:oasis:names:tc:SAML:2.0:assertion');
+    write.writeAttribute('IssueInstant',datetime);
     writer.writeAttribute('Version','2.0');
 
     //Issuer
@@ -163,6 +211,7 @@ function create_assertion(user) {
     //Use milliseconds
     writer.writeAttribute('NotOnOrAfter','milliseconds');
 
+    //saml:AudienceRestriction element
     writer.startElement('saml:AudienceRestriction');
     writer.startElement('saml:Audience');
     writer.text('Service for which user is authorized');
@@ -180,9 +229,12 @@ function create_assertion(user) {
 
     //End Assertion
     writer.endElement();
+
+    //End response
+    writer.endElement();
     
-    var xml_string = writer.toString();
-    return xml_string;
+    var response = writer.toString();
+    return response;
 }
 
 function main() {

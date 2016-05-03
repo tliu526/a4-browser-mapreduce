@@ -62,7 +62,9 @@ function request_handler(request, response){
     }
 
     else if(request.method == 'POST'){
-        console.log('got a post request!');
+        //TODO figure out if we're getting a SAMLResponse
+
+	console.log('got a post request!');
         var body = '';
         request.on('data', function (data) {
             body += data;

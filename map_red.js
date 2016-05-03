@@ -149,11 +149,11 @@
         this.print_progress = function(){
             if(this.map_todo.length > 0){
                 console.log('Task: ' + this.id);
-                console.log("Percent map complete: " + (this.map_todo.length) / num_maps);
+                console.log("Percent map complete: " + (this.map_todo.length) / this.num_maps);
             }
             else if(this.red_todo.length > 0){
                 console.log('Task: ' + this.id);
-                console.log("Percent reduce complete: " + (this.red_todo.length) / num_reds);
+                console.log("Percent reduce complete: " + (this.red_todo.length) / this.num_reds);
             }
         };
 
@@ -185,33 +185,5 @@
                 console.log("No outstanding tasks");
             }
         }
-    },
-
-    /**
-     * Processes a single task appropriately.
-     */
-    process_task: function(task){
-        var data = task['data'];
-        var func = task['func'];
-        var out = [];
-
-        //map task
-        if(task['id'].substring(0,1) == 'm'){
-            for (var i = 0; i < data.length; i++){
-                var k = data[i][0];
-                var v = data[i][1];
-                //TODO assumes that output of the map is a list
-                out = out.concat(func(k, v));
-            }
-        }
-        else if(task['id'].substring(0,1) == 'r'){
-            for (var i = 0; i < data.length; i++){
-                var k = data[i][0];
-                var v = data[i][1];
-                out.push([k, func(k, v)]);
-            }
-        }
-
-        return out;
-    }
+    }  
  }

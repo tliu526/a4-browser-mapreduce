@@ -6,6 +6,7 @@
 //"Include" statements
 var http = require('http');
 var url = require('url');
+var qs = require('querystring');
 var structs = require('./structs');
 var map_red = require('./map_red');
 
@@ -22,69 +23,61 @@ function request_handler(request, response){
    
     if(request.method == 'GET'){
         
-	//Send a SAML Authentication Request in an HTML form
-	var saml_form = create_SAML_form();
-	var volunteer_form = create_volunteer_form();
-	var html = '<html>\n';
-	html += saml_form + '\n';
-	html += volunteer_form + '\n';
-	html += '</html>';
+	    //Send a SAML Authentication Request in an HTML form
+       var saml_form = create_SAML_form();
+       var volunteer_form = create_volunteer_form();
+       var html = '<html>\n';
+       html += saml_form + '\n';
+       html += volunteer_form + '\n';
+       html += '</html>';
 
-	response.writeHead(200, {
-	    'Content-Type' : 'text/html',
-	    'Content-Length' : html.length,
-	    'Access-Control-Allow-Origin' : '*'
-	});
-	response.end(html);
-
-	/*
-        var nums = ''
-        for(var i = 0; i < 5; i++){
-            var n = Math.floor(Math.random() * (10));
-            nums += n.toString();
-
-            if(i < 5 - 1){
-                nums += ',';                
-            }
-        }
-
-        var html = create_task_html(add.toString(), "add", nums);
-        //console.log(html);
-        response.writeHead(200, {
-            'Content-Type' : 'text/html',
-            'Content-Length' : html.length,
-            'Expires' : new Date().toUTCString(),
-            'Access-Control-Allow-Origin' : '*'
-        });
-        response.end(html);
-	
-	*/
+       response.writeHead(200, {
+           'Content-Type' : 'text/html',
+           'Content-Length' : html.length,
+           'Access-Control-Allow-Origin' : '*'
+       });
+       response.end(html);
     }
 
     else if(request.method == 'POST'){
         //TODO figure out if we're getting a volunteer or SAML response
 
-	console.log('got a post request!');
+        console.log('got a post request!');
         var body = '';
         request.on('data', function (data) {
             body += data;
         });
         request.on('end', function() {
-            console.log("Body: " + body);
-            //Parse the results here!!
-        });
+            var post = qs.parse(body);
 
-        response.writeHead(200, {'Content-Type': 'text/html'});
-        response.end('POST received');
+            //we know we have a volunteer request
+            if(post.Volunteer != null){
+                console.log('volunteer request received');
+
+                var html = process_volunteer_request();
+                console.log(html);
+                response.writeHead(200, {
+                    'Content-Type' : 'text/html',
+                    'Content-Length' : html.length,
+                    'Expires' : new Date().toUTCString(),
+                    'Access-Control-Allow-Origin' : '*'
+                });
+                response.end(html);
+            }
+
+            //we know we have a volunteer response with data
+            else if(post.task_id != null){
+                console.log('volunteer data received');
+                var task_id = post.task_id;
+                var data = post.result;
+                var data = JSON.parse(data);
+                process_volunteer_output(task_id, data);
+            }
+
+        });
     }
 }
 
-/**** JOB MANAGEMENT FUNCTIONS AND VARS ****/
-
-var map_tasks = []; //Queue of structs.Tasks
-var reduce_tasks = []; //Queue of structs.Tasks
-
-var job_id = 0; //Global job ID 
 
 
 /**
@@ -102,7 +95,7 @@ function create_SAML_form() {
 
 function create_volunteer_form() {
     var form = '<form method = \"POST\" action=\"http://localhost:8889\">\n';
-    form += ,'input type=\"hidden\" name=\"Volunteer\" value=\"True\" />\n';
+    form += '<input type=\"hidden\" name=\"Volunteer\" value=\"True\" />\n';
     form += '<input type=\"submit\" value=\"Volunteer resources\" />\n';
     form += '</form>\n';
     return form;
@@ -135,45 +128,116 @@ function send_new_user(newUser,expires) {
 }
 
 
+/**** JOB MANAGEMENT FUNCTIONS AND VARS ****/
+
+//A queue of jobs managed by the job server
+var jobs = new structs.Queue();
+var cur_job = null;
+
 /**
- * Submits a job with the specified map and reduce functions to the job server.
+ * Submits a job with the specified map and reduce functions to the job server. TODOO
  */
 function submit_job(map, reduce, data){
-    job_id += 1;
+    //TODO
 }
 
 /**
- * Splits the data in some manner and places tasks in the map_tasks queue.
+ * Helper function for retrieving the function name of func
  */
-function create_map_tasks(map, data, job_id){
-
+function get_func_name(func){
+    var f_str = func.toString();
+    f_str = f_str.substring('function '.length);
+    return f_str.substring(0, f_str.indexOf('('));
 }
 
 /**
- * Takes intermediate output from maps, creating and queueing reduce tasks.
- * TODO think about parameters
- */
-function create_reduce_tasks(){}
-
-/**
- * Creates the worker html
+ * Creates the worker html page.
  * TODO think about parameters more, this is just a working prototype
- * task is currently the javascript code 
+ * task is currently the javascript function 
  * task_name is currently the function name implemented in task
  */
-function create_task_html(task, task_name, data){
+function create_task_html(task, task_id, data){
+    //TODO change
+    var url = "http://localhost:8889";
+    var func_name = get_func_name(task);
     var html = '<!DOCTYPE html>';
     html += '<html> <head> <script type=\"text/javascript\">\n';
-    html += task;
+    html += "var url=" + "\"" + url + "\"" + ";\n";
+    html += "var task_id=" + "\"" + task_id + "\"" + ";\n";
+    html += task.toString();
     html += createCORSRequest.toString();
+    html += process_task.toString();
     html += "</script> </head>";
-    html += "<body onload=" + "\"" + task_name + "();\"" + ">\n";
-    html += data;
+    html += "<body onload=" + "\"process_task(" + func_name + ", task_id, url);" + "\">\n";
+    //html += "<header>" + task_id + "</header>\n";
+    html += JSON.stringify(data);
     html += "</body>";
     html += "</html>";
 
     return html;
 }
+
+/**
+ * Processes a volunteer request and gives them a specific task to complete.
+ *
+ * Returns the html of the task they have been assigned.
+ */
+function process_volunteer_request(){
+    var task = cur_job.get_task();
+    return create_task_html(task['func'], task['id'], task['data']);
+}
+
+/**
+ * Processes the data returned from the volunteer request, and updates the cur_job.
+ * TODO then redirect volunteer to a new task.
+ */
+function process_volunteer_output(task_id, data){
+    cur_job.submit_output(task_id, data);
+
+    if(cur_job.is_complete()){
+        console.log("Complete output:");
+        console.log(cur_job.get_output());
+    }
+}
+
+/**
+ * Processes a single task appropriately, and sends the response. 
+ * This function is embedded in the html page of the volunteer client.
+ */
+function process_task(func, id, url){
+    console.log("process_task called!");
+    var json_data = document.body.innerHTML;
+    var data = JSON.parse(json_data);
+    var out = [];
+
+    //map task
+    if(id.substring(0,1) == 'm'){
+        for (var i = 0; i < data.length; i++){
+            var k = data[i][0];
+            var v = data[i][1];
+            //TODO assumes that output of the map is a list
+            out = out.concat(func(k, v));
+        }
+    }
+    else if(id.substring(0,1) == 'r'){
+        for (var i = 0; i < data.length; i++){
+            var k = data[i][0];
+            var v = data[i][1];
+            out.push([k, func(k, v)]);
+        }
+    }
+
+    var out_str = JSON.stringify(out);
+    //Create and send back POST form
+    var request = createCORSRequest("post", url);
+
+    if(request){
+        console.log("sending post!");
+        var response = "task_id=" + id + "&" + "result=" + out_str;
+        request.send(response);
+    }
+}
+
 /** a test function */
 function add(){
     var vals = document.body.innerHTML.split(",");
@@ -212,14 +276,26 @@ function main(){
     server.listen(PORT, function(){
         console.log("Server listening on: http://localhost:%s", PORT);
     });
+
+    /*
+    while(!cur_job.is_complete()){
+        //do nothing, for now
+    //    setTimeout(cur_job.print_progress(), 300000);
+    }
+    
+    console.log("Final output");
+    console.log(cur_job.get_output());
+    */
 }
 
 function test(){
+    /*
     var t = new structs.Task('id3', function(){console.log('hi')}, 'dataaaaa');
     console.log(t['id']);
     console.log(t['func']);
     console.log(t['data']);
-
+    */
+    
     var data = [
     ['frase primera', 'primer trozo de informacion para procesado primer trozo'],
     ['segunda frase', 'segundo trozo de informacion trozo de'],
@@ -232,15 +308,7 @@ function test(){
     var job = new map_red.Job(wc_map, wc_red, data);
     var num_tasks = job.create_map_tasks(6);
     console.log("The number of map tasks:" + num_tasks);
-
-    while(!job.is_complete()){
-        var task = job.get_task();
-        var out = map_red.process_task(task);
-        job.submit_output(task['id'], out);
-    }
-
-    console.log("Final output");
-    console.log(job.get_output());
+    cur_job = job;
 }
 
 //TEST MAP FOR MAPREDUCE

@@ -102,7 +102,7 @@ function create_SAML_form() {
 
 function create_volunteer_form() {
     var form = '<form method = \"POST\" action=\"http://localhost:8889\">\n';
-    form += ,'input type=\"hidden\" name=\"Volunteer\" value=\"True\" />\n';
+    form += '<input type=\"hidden\" name=\"Volunteer\" value=\"True\" />\n';
     form += '<input type=\"submit\" value=\"Volunteer resources\" />\n';
     form += '</form>\n';
     return form;

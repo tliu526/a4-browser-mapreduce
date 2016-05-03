@@ -1,0 +1,25 @@
+{
+  "name": "a4-browser-mapreduce",
+  "version": "1.0.0",
+  "description": "One of the goals with this project is to implement a collaborative in-browser computation system with volunteers and job requesters. Participants can open a specified URL to contribute CPU cycles to an ongoing computation. We're currently utilizing a MapReduce framework as a proof of concept, but in theory any sort of computational work can be distributed across the compute nodes.",
+  "main": "job_server.js",
+  "dependencies": {
+    "httpdispatcher": "^1.0.0",
+    "sqlite3": "^3.1.3",
+    "querystring": "^0.2.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://tliu526:golf052694@github.com/tliu526/a4-browser-mapreduce.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tliu526/a4-browser-mapreduce/issues"
+  },
+  "homepage": "https://github.com/tliu526/a4-browser-mapreduce#readme"
+}

@@ -207,7 +207,6 @@ function createCORSRequest(method, url){
 
 /**** MAIN ****/
 function main(){
-    send_new_user(1010,2020);
     var server = http.createServer(request_handler);
     server.listen(PORT, function(){
         console.log("Server listening on: http://localhost:%s", PORT);

@@ -14,4 +14,4 @@ We are using Node.js for implementing our Job Server.
 npm packages currently installed:
 - sqllite3
 - xml-writer
-- qs
+- querystring

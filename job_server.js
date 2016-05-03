@@ -288,8 +288,18 @@ function createCORSRequest(method, url){
 /**** MAIN ****/
 function main(){
     var server = http.createServer(request_handler);
+
+    /*
     server.listen(PORT, function(){
         console.log("Server listening on: http://localhost:%s", PORT);
+    });
+    */
+    var server_port = process.env.OPENSHIFT_NODEJS_PORT || 8080
+    var server_ip_address = process.env.OPENSHIFT_NODEJS_IP || '127.0.0.1'
+    
+    //For deployment on OpenShift
+    server.listen(server_port, server_ip_address, function () {
+        console.log( "Listening on " + server_ip_address + ", server_port " + port )
     });
 
     /*

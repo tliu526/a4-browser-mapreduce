@@ -9,6 +9,8 @@ var url = require('url');
 var qs = require('querystring');
 var structs = require('./structs');
 var map_red = require('./map_red');
+var XMLWriter = require('xml-writer');
+var fs = require('fs');
 
 /**** WEB SERVER FUNCTIONS AND VARS ****/
 const PORT = 8889;
@@ -23,22 +25,24 @@ function request_handler(request, response){
    
     if(request.method == 'GET'){
         
-	    //Send a SAML Authentication Request in an HTML form
-       var saml_form = create_SAML_form();
-       var volunteer_form = create_volunteer_form();
-       var html = '<html>\n';
-       html += saml_form + '\n';
-       html += volunteer_form + '\n';
-       html += '</html>';
+	//Send a SAML Authentication Request in an HTML form
 
-       response.writeHead(200, {
-           'Content-Type' : 'text/html',
-           'Content-Length' : html.length,
-           'Access-Control-Allow-Origin' : '*'
+	//Get a base64 encoded SAML AuthnRequest
+	var samlRequest = create_SAML_AuthRequest();
+	var htmlFile = 'job_server_login.html';
+	
+	var text = fs.readFileSync(htmlFile,'utf8');
+	text = text.replace('Put SAML Request here',samlRequest);
+	
+	response.writeHead(200, {
+		'Content-Type' : 'text/html',
+		    'Content-Length' : text.length,
+		    'Access-Control-Allow-Origin' : '*'
        });
-       response.end(html);
-    }
+	response.end(text);
 
+    }
+    
     else if(request.method == 'POST'){
         //TODO figure out if we're getting a volunteer or SAML response
 
@@ -79,6 +83,29 @@ function request_handler(request, response){
 }
 
 
+/**
+ * Creates and returns a SAMLAuthentication request 
+ */
+function create_SAML_AuthRequest() {
+    var writer = new XMLWriter(true);
+    
+    writer.startDocument();
+    
+    writer.startElement('samlp:AuthnRequest');
+    writer.writeAttribute('xmlns:samlp','urn:oasis:names:tc:SAML:2.0:protocol');
+    writer.writeAttribute('xmlns:saml','urn:oasis:names:tc:SAML:2.0:assertion');
+    writer.writeAttribute('Version','2.0');
+    var now = new Date().getTime();
+    writer.writeAttribute('IssueInstant',now);
+
+    writer.writeElement('saml:Issuer','localhost:8889');
+    
+    writer.endElement();
+    
+    var samlRequest = writer.toString();
+    var samlRequestBase64 = new Buffer(samlRequest).toString('base64');
+    return samlRequestBase64;
+}
 
 /**
  * Creates an HTML form to send to the user with a SAML Authentication Request
@@ -86,11 +113,12 @@ function request_handler(request, response){
  */
 function create_SAML_form() {
     var form = '<form method=\"POST\" action=\"http://localhost:8890\" id=\"form\">\n';
-    form += '<input type=\"hidden\" name=\"SAMLRequest\" value = \"request\" />\n';
+    form += '<input type=\"hidden\" name=\"SAMLRequest\" value = \"' + request + '\" />\n';
     form += '<input type=\"hidden\" name=\"RelayState\" value=\"state\" />\n';
     form += '<input type=\"submit\" value=\"Access resources\" />\n';
     form += '</form>\n';
     return form;
+    
 }
 
 function create_volunteer_form() {
@@ -105,26 +133,13 @@ function create_volunteer_form() {
  * Send a new user's token to the IDP to allow for future authentication
  */
 function send_new_user(newUser,expires) {
-    var options = {
-	host: 'localhost',
-	path: '/',
-	port: '8890',
-	method: 'POST',
+    var url = 'http://localhost:8890';
+    var request = createCORSRequest('POST',url);
+    if (request) {
+	var data = 'newUser=' + newUser + '&expires=' + expires;
+	request.send(data);
     }
-
-    callback = function(response) {
-	var str = '';
-	response.on('data',function(chunk) {
-		str += chunk;
-	    });
-	response.on('end', function () {
-		console.log(str);
-	    });
-    }
-
-    var req = http.request(options,callback);
-    req.write('newUser=' + newUser + '&expires=' + expires);
-    req.end();
+    
 }
 
 

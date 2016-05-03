@@ -37,13 +37,15 @@ function request_handler(request,response) {
 		    relayState = post.RelayState;
 		    //Case 1: Initial SAMLRequest
 		    console.log('Just received a SAML request. Request: ' + post.SAMLRequest);
-		    var html = create_login_page();
+		    
+		    var htmlFile = 'identity_provider_login.html';
+		    var text = fs.readFileSync(htmlFile,'utf8');
 		    response.writeHead(200, {
 			    'Content-Type' : 'text/html',
-				'Content-Length' : html.length,
+				'Content-Length' : text.length,
 				'Access-Control-Allow-Origin': '*'
 				});
-		    response.end(html);
+		    response.end(text);
 		    
 		    
 		} else if (post.token != null) {
@@ -60,8 +62,8 @@ function request_handler(request,response) {
 		    var newUser = post.newUser;
 		    var expires = post.expires
 		    console.log('Just received a new user. New user\'s token: ' + post.newUser + '. Adding new user to database');
-		    add_new_user(newUser,expires);
-		    
+		    add_new_user(newUser,expires,responsePath);
+
 		    //Respond with success message to job_server
 		    response.writeHead(200, {
 			    'Content-Type' : 'text/html',
@@ -90,31 +92,6 @@ function extract_saml(post) {
     if (!issuer.val.equals('PUT NAME OF SERVICE PROVIDER HERE')) {
 	console.log('Identity provider does not service this provider');
     }
-}
-
-/**
- * Creates and returns an html login page
- */
-function create_login_page() {
-    var html = '<!DOCTYPE html>';
-    html += '<form action = \"http://localhost:8890\" method=\"POST\">';
-    html += 'Authentication token:<br>';
-    html += '<input type=\"text\" name=\"token\"><br>';
-    html += '<input type=\"submit\" value=\"Submit\">';
-    html += '</form>';
-    return html;
-}
-
-/**
- * Creates and returns an html POST form
- */
-function create_response_form(response,relayState) {
-    var form = '<form method=\"POST\" action=\"http://localhost:8889\">\n';
-    form += '<input type=\"hidden\" name=\"SAMLResponse\" value=\"' + response + '\" />\n';
-    form += '<input type=\"hidden\" name=\"RelayState\" value=\"' + relayState + '\" />\n';
-    form += '<input type=\"submit\" value=\"Submit\" />\n';
-    form += '</form>';
-    return form;
 }
 
 /**
@@ -151,6 +128,7 @@ function add_new_user(user,expires) {
     var db = new sqlite3.Database(file);
     var stmt = db.prepare('INSERT INTO USERS VALUES (' + user + ', ' + expires + ');'); 
     stmt.run();
+    stmt.finalize();
     console.log('Added a user with token ' + user + ' to database');
     db.close();
 }
@@ -235,15 +213,18 @@ function send_response(user,datetime,authenticated,responsePath) {
     console.log('SAMLResponse: ' + samlResponse);
     var samlResponseBase64 = new Buffer(samlResponse).toString('base64');
     console.log('SAMLResponseBase64: ' + samlResponseBase64);
+
+    var htmlFile = 'identity_provider_responseForm.html';
+    var text = fs.readFileSync(htmlFile,'utf8');
+    text = text.replace('Put SAML Response here',samlResponseBase64);
+    text = text.replace('Put RelayState here',relayState);
     
-    //Create and send an HTML form to user
-    var form = create_response_form(samlResponseBase64,relayState);
     responsePath.writeHead(200, {
 	    'Content-Type' : 'text/html',
-		'Content-Length' : form.length,
+		'Content-Length' : text.length,
 		'Access-Control-Allow-Origin' : '*'
 		});
-    responsePath.end(form);
+    responsePath.end(text);
     console.log('Sent POST form to user');
 }
 

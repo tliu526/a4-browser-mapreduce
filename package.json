@@ -14,7 +14,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://tliu526:golf052694@github.com/tliu526/a4-browser-mapreduce.git"
+    "url": "git://github.com/tliu526/a4-browser-mapreduce.git"
   },
   "author": "",
   "license": "ISC",

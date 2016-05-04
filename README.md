@@ -15,3 +15,4 @@ npm packages currently installed:
 - sqllite3
 - xml-writer
 - querystring
+- xmldoc

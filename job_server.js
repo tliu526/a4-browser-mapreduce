@@ -10,6 +10,7 @@ var qs = require('querystring');
 var structs = require('./structs');
 var map_red = require('./map_red');
 var XMLWriter = require('xml-writer');
+var xmldoc = require('xmldoc');
 var fs = require('fs');
 
 
@@ -47,7 +48,7 @@ function request_handler(request, response){
     }
     
     else if(request.method == 'POST'){
-        //TODO figure out if we're getting a volunteer or SAML response
+        
 
         console.log('got a post request!');
         var body = '';
@@ -80,6 +81,45 @@ function request_handler(request, response){
                 var data = JSON.parse(data);
                 process_volunteer_output(task_id, data);
             }
+
+	    //we know we have a SAMLResponse
+	    else if(post.SAMLResponse != null) {
+		//Get SAMLResponse in string
+		var samlResponseBase64 = post.SAMLRequest;
+		var samlResponse = new Buffer(samlResponseBase64,'base64').toString();
+		var xmlObject = new XmlDocument(samlResponse);
+
+		//Get issuer and ensure it's the IDP
+		var issuer = xmlObject.childNamed('saml:issuer');
+		if (issuer.val != 'http://localhost:8890') {
+		    console.log('Invalid identity provider. Response ignored');
+		    return;
+		}
+
+		//Get assertion
+		var assertion = xmlObject.childNamed('saml:Assertion');
+		
+		//TODO check signature
+
+		//Check NotOnOrAfter
+		var conditions = assertion.childNamed('saml:Conditions');
+		var expires = conditions.attr.NotOnOrAfter;
+		var now = new Date().getTime();
+		if (expires < now) {
+		    console.log('SAML Assertion has expired. Access will be denied');
+		    //TODO display message to user
+		}
+		
+		//Check attribute
+		var attributeValue = assertion.childNamed('saml:AttributeStatement').childNamed('saml:Attribute').childNamed('saml:AttributeValue').val; 
+		if (val == 'Resource volunteer') {
+		    console.log('SAMLResponse has confirmed that user is a resource volunteer. Access will be granted');
+		    //TODO redirect user
+		} else {
+		    console.log('SAMLResponse has not confirmed that user is a resource volunteer. Access will be denied');
+		    //TODO redirect user
+		}
+	    }
 
         });
     }

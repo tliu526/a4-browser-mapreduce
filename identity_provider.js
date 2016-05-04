@@ -171,9 +171,6 @@ function send_response(user,datetime,authenticated,responsePath) {
 
     //Subject, NameID
     writer.startElement('saml:Subject');
-    //writer.startElement('saml:NameID');
-    //writer.text(user);
-    //writer.endElement(); 
     writer.writeElement('saml:NameID',user.toString());
     writer.endElement();
 
@@ -190,15 +187,19 @@ function send_response(user,datetime,authenticated,responsePath) {
     writer.text('Service for which user is authorized');
     writer.endElement();
     writer.endElement();
+    
+    //End conditions element
     writer.endElement();
     
-    //Attribute and AttributeValue
+    //AttributeStatement, Attribute, and AttributeValue
     //Identifies the user as a resource volunteer
+    writer.startElement('saml:AttributeStatement');
     writer.startElement('saml:Attribute');
     writer.startElement('AttributeValue');
 
     if (authenticated) writer.text('Resource volunteer');
     else writer.text('Not a resource volunteer');
+    writer.endElement();
     writer.endElement();
     writer.endElement();
 

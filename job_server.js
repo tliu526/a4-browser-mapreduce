@@ -48,14 +48,14 @@ function request_handler(request, response){
     }
     
     else if(request.method == 'POST'){
-        
-
+	//Get post data
         console.log('got a post request!');
         var body = '';
         request.on('data', function (data) {
             body += data;
         });
         request.on('end', function() {
+	    //Determine type of post based on attributes
             var post = qs.parse(body);
 
             //we know we have a volunteer request
@@ -85,20 +85,21 @@ function request_handler(request, response){
 	    //we know we have a SAMLResponse
 	    else if(post.SAMLResponse != null) {
 		//Get SAMLResponse in string
-		var samlResponseBase64 = post.SAMLRequest;
-		var samlResponse = new Buffer(samlResponseBase64,'base64').toString();
-		var xmlObject = new XmlDocument(samlResponse);
+		var samlResponseBase64 = post.SAMLResponse;
+		var samlResponse = new Buffer(samlResponseBase64,'base64').toString('utf8');
+		var xmlObject = new xmldoc.XmlDocument(samlResponse);
 
 		//Get issuer and ensure it's the IDP
-		var issuer = xmlObject.childNamed('saml:issuer');
-		if (issuer.val != 'http://localhost:8890') {
+		var issuer = xmlObject.childNamed('saml:Issuer');
+		
+		if (issuer.val.trim() != 'http://localhost:8890') {
 		    console.log('Invalid identity provider. Response ignored');
 		    return;
 		}
 
 		//Get assertion
 		var assertion = xmlObject.childNamed('saml:Assertion');
-		
+
 		//TODO check signature
 
 		//Check NotOnOrAfter
@@ -112,7 +113,7 @@ function request_handler(request, response){
 		
 		//Check attribute
 		var attributeValue = assertion.childNamed('saml:AttributeStatement').childNamed('saml:Attribute').childNamed('saml:AttributeValue').val; 
-		if (val == 'Resource volunteer') {
+		if (attributeValue == 'Resource volunteer') {
 		    console.log('SAMLResponse has confirmed that user is a resource volunteer. Access will be granted');
 		    //TODO redirect user
 		} else {

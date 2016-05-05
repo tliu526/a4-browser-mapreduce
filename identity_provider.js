@@ -101,16 +101,15 @@ function validate_user(user,responsePath) {
     
     var db = new sqlite3.Database(file);
     
-    db.get('SELECT ' + user + ' FROM USERS',function(err,row) {
+    db.get('SELECT TOKEN, EXPIRE FROM USERS WHERE TOKEN = ' + user + ';',function(err,row) {
 	    var now = new Date().getTime();
-	    if (typeof row.id == 'undefined') {
+    
+	    if (typeof row == 'undefined') {
 		console.log('User-specified token not found in database. Access will be denied.');
 		send_response(user,now,false,responsePath);
 	    } else {
-		var token = row.token;
-		console.log(row.id + ': ' + row.info);
-		console.log('This should not be null: ' + token);
-		var expire = row.expire;
+		var token = row.TOKEN;
+		var expire = row.EXPIRE;
 		var currentDateTime = new Date().getTime();
 		if (expire < currentDateTime) {
 		    console.log('User\'s token has expired. Access will be denied');
@@ -124,13 +123,38 @@ function validate_user(user,responsePath) {
     db.close();
 }
 
+/**
+ * Add a new user to the database, along with when their authentication expires
+ */
 function add_new_user(user,expires) {
     var db = new sqlite3.Database(file);
-    var stmt = db.prepare('INSERT INTO USERS VALUES (' + user + ', ' + expires + ');'); 
-    stmt.run();
-    stmt.finalize();
-    console.log('Added a user with token ' + user + ' to database');
-    db.close();
+    var stmt = 'INSERT INTO USERS VALUES (' + user + ', ' + expires + ');'; 
+    db.run(stmt,function(err) {
+	    if (err != null) {
+		console.log('An error occured while adding a user');
+	    } else {
+		console.log('Added user with token ' + user);
+	    }
+	    db.close();
+	});
+}
+
+
+/**
+ * Deletes all users whose authentication tokens have expired
+ */
+function clear_expired_users() {
+    var db = new sqlite3.Database(file);
+    var now = new Date().getTime();
+    var stmt = 'DELETE FROM USERS WHERE EXPIRE < ' + now;
+    db.run(stmt,function(err) {
+	    if (err != null) {
+		console.log('An error occured while removing expired users');
+	    } else {
+		console.log('Successfully removed users with expired tokens');
+	    }
+	    db.close();
+	});
 }
 
 /**
@@ -154,7 +178,7 @@ function send_response(user,datetime,authenticated,responsePath) {
     //Issuer element                                                   
     writer.startElement('saml:Issuer');
     writer.text('http://localhost:8890');
-    writer.endElement;    
+    writer.endElement();    
 
     //Start saml:Assertion element and write attributes
     writer.startElement('saml:Assertion');
@@ -164,7 +188,7 @@ function send_response(user,datetime,authenticated,responsePath) {
 
     //Issuer
     writer.startElement('saml:Issuer');
-    writer.text('localhost:8890');
+    writer.text('http://localhost:8890');
     writer.endElement();
 
     //put signature here
@@ -195,7 +219,7 @@ function send_response(user,datetime,authenticated,responsePath) {
     //Identifies the user as a resource volunteer
     writer.startElement('saml:AttributeStatement');
     writer.startElement('saml:Attribute');
-    writer.startElement('AttributeValue');
+    writer.startElement('saml:AttributeValue');
 
     if (authenticated) writer.text('Resource volunteer');
     else writer.text('Not a resource volunteer');
@@ -231,15 +255,15 @@ function send_response(user,datetime,authenticated,responsePath) {
 
 function main() {
     //Add a new user to the DB and print out their authentication token
+    //Expires after 300 seconds
     var now = new Date().getTime();
-    console.log('Current millis: ' + now);
+    console.log('New token: ' + now);
+    var expires = now + 300000;
+    console.log('Expires: ' + expires);
+    add_new_user(now,expires);
 
-    var db = new sqlite3.Database(file);
-    var stmt = db.prepare('INSERT INTO USERS VALUES (' + now + ', ' + now + 10000000000 + ');');
-    stmt.run();
-    console.log('Added a user with token ' + now + ' to databse');
-    stmt.finalize();
-    db.close();
+    //Clear expired users from the database
+    clear_expired_users();
 
     //Create server and listen for requests
     var server = http.createServer(request_handler);

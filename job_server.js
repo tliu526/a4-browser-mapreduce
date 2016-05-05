@@ -23,6 +23,8 @@ var local = true;
 
 /**** WEB SERVER FUNCTIONS AND VARS ****/
 const PORT = 8889;
+const JOB_SERVER_URL = "http://bmr-cs339.rhcloud.com";
+const IDP_URL = "http://idp-cs339.rhcloud.com";
 
 /**
  * Handles the requests sent to the webserver.
@@ -217,7 +219,13 @@ function get_func_name(func){
  */
 function create_task_html(task, task_id, data){
     //TODO change
-    var url = "http://localhost:8889";
+    var url = '';
+    if(local){
+        url = "http://localhost:" + PORT;
+    }
+    else {
+        url = JOB_SERVER_URL;
+    }
     var func_name = get_func_name(task);
     var html = '<!DOCTYPE html>';
     html += '<html> <head> <script type=\"text/javascript\">\n';

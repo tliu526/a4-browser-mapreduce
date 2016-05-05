@@ -37,7 +37,7 @@ function request_handler(request,response) {
 		    //Save relayState for later. TODO this is probably bad
 		    relayState = post.RelayState;
 		    //Case 1: Initial SAMLRequest
-		    console.log('Just received a SAML request. Request: ' + post.SAMLRequest);
+		    console.log('Just received a SAML request.');
 		    
 		    var htmlFile = 'identity_provider_login.html';
 		    var text = fs.readFileSync(htmlFile,'utf8');
@@ -107,17 +107,17 @@ function validate_user(user,responsePath) {
     
 	    if (typeof row == 'undefined') {
 		console.log('User-specified token not found in database. Access will be denied.');
-		send_response(user,now,false,responsePath);
+		//TODO redirect user
 	    } else {
 		var token = row.TOKEN;
 		var expire = row.EXPIRE;
 		var currentDateTime = new Date().getTime();
 		if (expire < currentDateTime) {
 		    console.log('User\'s token has expired. Access will be denied');
-		    send_response(token,now,false,responsePath);
+		    //TODO redirect user
 		} else {
 		    console.log('Token is valid. Access will be granted');
-		    send_response(token,now,true,responsePath);
+		    send_response(token,expire,true,responsePath);
 		}
 	    }
 	});
@@ -161,7 +161,7 @@ function clear_expired_users() {
 /**
  * Create SAML Response with Assertion
  */
-function send_response(user,datetime,authenticated,responsePath) {
+function send_response(user,expire,authenticated,responsePath) {
 
     //Create SAMLResponse
     var writer = new XMLWriter(true);
@@ -174,6 +174,7 @@ function send_response(user,datetime,authenticated,responsePath) {
     writer.writeAttribute('xmlns:samlp','urn:oasis:names:tc:SAML:2.0:protocol');
     writer.writeAttribute('xmlns:saml','urn:oasis:names:tc:SAML:2.0:assertion');
     writer.writeAttribute('Version','2.0');
+    var datetime = new Date().getTime();
     writer.writeAttribute('IssueInstant',datetime);
 
     //Issuer element                                                   
@@ -201,10 +202,7 @@ function send_response(user,datetime,authenticated,responsePath) {
 
     //Conditions, Audience Restriction, and Audience
     writer.startElement('saml:Conditions');
-    
-    //Expires after 1 day
-    expires = user + 86400000;
-    writer.writeAttribute('NotOnOrAfter',expires);
+    writer.writeAttribute('NotOnOrAfter',expire.toString());
 
     //saml:AudienceRestriction element
     writer.startElement('saml:AudienceRestriction');
@@ -236,23 +234,12 @@ function send_response(user,datetime,authenticated,responsePath) {
 
     //Get saml response in a string
     var samlResponse = writer.toString();
-    console.log('SAMLResponse: ' + samlResponse);
 
-    //Sign saml assertion
-    var signature = new SignedXml();
-    signature.addReference('//*[local-name(.)=\'Assertion\']');
-    //signature.addReference('/samlp:Response/saml:Assertion[1]');
-    signature.signingKey = fs.readFileSync('privateNoPass.pem');
-    signature.computeSignature(samlResponse);
-    /*signature.computeSignature(samlResponse, {
-	    location: { reference: "/samlp:Response/saml:Assertion/saml:Issuer", action: "after"}
-	    });*/
-    samlResponse = signature.getSignedXml();
-    console.log('Signed SAMLResponse: ' + samlResponse);
+    //Sign the response
+    samlResponse = sign_saml(samlResponse);
 
     //Encode saml response in base64
     var samlResponseBase64 = new Buffer(samlResponse).toString('base64');
-    console.log('SAMLResponseBase64: ' + samlResponseBase64);
 
     var htmlFile = 'identity_provider_responseForm.html';
     var text = fs.readFileSync(htmlFile,'utf8');
@@ -267,6 +254,20 @@ function send_response(user,datetime,authenticated,responsePath) {
     responsePath.end(text);
     console.log('Sent POST form to user');
 }
+
+/**
+ * Takes a SAMLResponse, signs it, and returns it
+ */
+
+function sign_saml(samlResponse) {
+    var signature = new SignedXml();
+    signature.addReference('//*[local-name(.)=\'Assertion\']');
+    signature.signingKey = fs.readFileSync('privateNoPass.pem');
+    signature.computeSignature(samlResponse);
+    samlResponse = signature.getSignedXml();
+    return samlResponse;
+}
+
 
 function main() {
     //Add a new user to the DB and print out their authentication token

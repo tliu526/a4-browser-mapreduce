@@ -35,16 +35,19 @@ function request_handler(request, response){
 //    response.end('Hello world! Path hit: ' + request.url);
    
     if(request.method == 'GET'){
-        
 	//Send a SAML Authentication Request in an HTML form
 
 	//Get a base64 encoded SAML AuthnRequest
 	var samlRequest = create_SAML_AuthRequest();
+
+	//A hard-coded html login page
 	var htmlFile = 'job_server_login.html';
 	
+	//Insert SAML Request into htmlFile
 	var text = fs.readFileSync(htmlFile,'utf8');
 	text = text.replace('Put SAML Request here',samlRequest);
 	
+	//Send SAML Request
 	response.writeHead(200, {
 		'Content-Type' : 'text/html',
 		    'Content-Length' : text.length,
@@ -65,7 +68,7 @@ function request_handler(request, response){
 	    //Determine type of post based on attributes
             var post = qs.parse(body);
 
-            //we know we have a volunteer request
+            //Case 1: Volunteer request
             if(post.Volunteer != null){
                 console.log('volunteer request received');
 
@@ -80,7 +83,7 @@ function request_handler(request, response){
                 response.end(html);
             }
 
-            //we know we have a volunteer response with data
+            //Case 2: Volunteer response
             else if(post.task_id != null){
                 console.log('volunteer data received');
                 var task_id = post.task_id;
@@ -89,59 +92,49 @@ function request_handler(request, response){
                 process_volunteer_output(task_id, data);
             }
 
-	    //we know we have a SAMLResponse
+	    //Case 3: SAML Response
 	    else if(post.SAMLResponse != null) {
-		//Get SAMLResponse in string
+		//Get decoded SAML Response in string
 		var samlResponseBase64 = post.SAMLResponse;
 		var samlResponse = new Buffer(samlResponseBase64,'base64').toString('utf8');
-		console.log(samlResponse);
+		
 		//Check signature
-		var samlResponseDom = new dom({ignoreWhiteSpace: true}).parseFromString(samlResponse);
-		var signature = select(samlResponseDom,'/*/*[local-name(.)=\'Signature\' and namespace-uri(.)=\'http://www.w3.org/2000/09/xmldsig#\']')[0]; 
-		//var signature = select(samlResponseDom,'/samlp:Response/saml:Assertion/*[local-name(.)=\'Signature\' and namespace-uri(.)=\'http://www.w3.org/2000/09/xmldsig#\']')[0];
-		var sigChecker = new SignedXml();
-		sigChecker.keyInfoProvider = new FileKeyInfo('public.pem');
-		sigChecker.loadSignature(signature.toString());
-		var result = sigChecker.checkSignature(samlResponse);
-		if (!result) {
-		    console.log('Signature check failed. Access will be denied');
-		    console.log(sigChecker.validationErrors);
-		    return;
+		if (validate_signature(samlResponse)) {
+		    console.log('Signature successfully verified');
+		} else {
+		    console.log('Signature not verified. Access will be denied');
 		    //TODO redirect user
 		}
-
-		console.log('Signature verified');
 
 		//Now that signature is verified, parse the response
 		var xmlObject = new xmldoc.XmlDocument(samlResponse);
 
-		//Get issuer and ensure it's the IDP
+		//Get issuer and ensure it's the correct identity provider
 		var issuer = xmlObject.childNamed('saml:Issuer');
-		
 		if (issuer.val.trim() != 'http://localhost:8890') {
 		    console.log('Invalid identity provider. Response ignored');
 		    return;
 		}
 
-		//Get assertion
+		//Get assertion in an object
 		var assertion = xmlObject.childNamed('saml:Assertion');
 
-		//Check NotOnOrAfter
+		//Check NotOnOrAfter condition
 		var conditions = assertion.childNamed('saml:Conditions');
 		var expires = conditions.attr.NotOnOrAfter;
 		var now = new Date().getTime();
 		if (expires < now) {
 		    console.log('SAML Assertion has expired. Access will be denied');
-		    //TODO display message to user
+		    //TODO redirect user
 		}
 		
-		//Check attribute
+		//Check attribute given my IDP
 		var attributeValue = assertion.childNamed('saml:AttributeStatement').childNamed('saml:Attribute').childNamed('saml:AttributeValue').val; 
 		if (attributeValue == 'Resource volunteer') {
-		    console.log('SAMLResponse has confirmed that user is a resource volunteer. Access will be granted');
+		    console.log('SAML Response has confirmed that user is a resource volunteer. Access will be granted');
 		    //TODO redirect user
 		} else {
-		    console.log('SAMLResponse has not confirmed that user is a resource volunteer. Access will be denied');
+		    console.log('SAML Response has not confirmed that user is a resource volunteer. Access will be denied');
 		    //TODO redirect user
 		}
 	    }
@@ -186,6 +179,25 @@ function send_new_user(newUser,expires) {
 	request.send(data);
     }
     
+}
+
+/**
+ * Takes a signed SAML Response and validates the signature
+ */
+function validate_signature(samlResponse) {
+    var samlResponseDom = new dom({ignoreWhiteSpace: true}).parseFromString(samlResponse);
+    var signature = select(samlResponseDom,'//*[local-name(.)=\'\
+Signature\' and namespace-uri(.)=\'http://www.w3.org/2000/09/xmldsig#\']')[0];
+    var sigChecker = new SignedXml();
+    sigChecker.keyInfoProvider = new FileKeyInfo('public.pem');
+    sigChecker.loadSignature(signature.toString());
+    var result = sigChecker.checkSignature(samlResponse);
+    if (!result) {
+	console.log(sigChecker.validationErrors);
+	return false;
+    } else {
+	return true;
+    } 
 }
 
 

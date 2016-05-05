@@ -16,3 +16,6 @@ npm packages currently installed:
 - xml-writer
 - querystring
 - xmldoc
+- xml-crypto
+- xpath
+- xmldom

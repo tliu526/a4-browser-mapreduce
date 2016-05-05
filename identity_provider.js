@@ -13,6 +13,7 @@ var fs = require('fs');
 var file = 'users.db';
 var exists = fs.existsSync(file);
 var sqlite3 = require('sqlite3').verbose();
+var SignedXml = require('xml-crypto').SignedXml;
 
 const PORT = 8890;
 
@@ -233,9 +234,23 @@ function send_response(user,datetime,authenticated,responsePath) {
     //End SAMLResponse
     writer.endElement();
 
-    //Encode SAMLResponse
+    //Get saml response in a string
     var samlResponse = writer.toString();
     console.log('SAMLResponse: ' + samlResponse);
+
+    //Sign saml assertion
+    var signature = new SignedXml();
+    signature.addReference('//*[local-name(.)=\'Assertion\']');
+    //signature.addReference('/samlp:Response/saml:Assertion[1]');
+    signature.signingKey = fs.readFileSync('privateNoPass.pem');
+    signature.computeSignature(samlResponse);
+    /*signature.computeSignature(samlResponse, {
+	    location: { reference: "/samlp:Response/saml:Assertion/saml:Issuer", action: "after"}
+	    });*/
+    samlResponse = signature.getSignedXml();
+    console.log('Signed SAMLResponse: ' + samlResponse);
+
+    //Encode saml response in base64
     var samlResponseBase64 = new Buffer(samlResponse).toString('base64');
     console.log('SAMLResponseBase64: ' + samlResponseBase64);
 

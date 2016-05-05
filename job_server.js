@@ -13,6 +13,11 @@ var XMLWriter = require('xml-writer');
 var xmldoc = require('xmldoc');
 var fs = require('fs');
 
+//signature requirements
+var select = require('xml-crypto').xpath;
+var dom = require('xmldom').DOMParser;
+var SignedXml = require('xml-crypto').SignedXml;
+var FileKeyInfo = require('xml-crypto').FileKeyInfo;
 
 var local = true;
 
@@ -87,6 +92,25 @@ function request_handler(request, response){
 		//Get SAMLResponse in string
 		var samlResponseBase64 = post.SAMLResponse;
 		var samlResponse = new Buffer(samlResponseBase64,'base64').toString('utf8');
+		console.log(samlResponse);
+		//Check signature
+		var samlResponseDom = new dom({ignoreWhiteSpace: true}).parseFromString(samlResponse);
+		var signature = select(samlResponseDom,'/*/*[local-name(.)=\'Signature\' and namespace-uri(.)=\'http://www.w3.org/2000/09/xmldsig#\']')[0]; 
+		//var signature = select(samlResponseDom,'/samlp:Response/saml:Assertion/*[local-name(.)=\'Signature\' and namespace-uri(.)=\'http://www.w3.org/2000/09/xmldsig#\']')[0];
+		var sigChecker = new SignedXml();
+		sigChecker.keyInfoProvider = new FileKeyInfo('public.pem');
+		sigChecker.loadSignature(signature.toString());
+		var result = sigChecker.checkSignature(samlResponse);
+		if (!result) {
+		    console.log('Signature check failed. Access will be denied');
+		    console.log(sigChecker.validationErrors);
+		    return;
+		    //TODO redirect user
+		}
+
+		console.log('Signature verified');
+
+		//Now that signature is verified, parse the response
 		var xmlObject = new xmldoc.XmlDocument(samlResponse);
 
 		//Get issuer and ensure it's the IDP
@@ -99,8 +123,6 @@ function request_handler(request, response){
 
 		//Get assertion
 		var assertion = xmlObject.childNamed('saml:Assertion');
-
-		//TODO check signature
 
 		//Check NotOnOrAfter
 		var conditions = assertion.childNamed('saml:Conditions');
@@ -149,28 +171,6 @@ function create_SAML_AuthRequest() {
     var samlRequest = writer.toString();
     var samlRequestBase64 = new Buffer(samlRequest).toString('base64');
     return samlRequestBase64;
-}
-
-/**
- * Creates an HTML form to send to the user with a SAML Authentication Request
- * TODO Put real values for SAMLRequest and RelayState
- */
-function create_SAML_form() {
-    var form = '<form method=\"POST\" action=\"http://localhost:8890\" id=\"form\">\n';
-    form += '<input type=\"hidden\" name=\"SAMLRequest\" value = \"' + request + '\" />\n';
-    form += '<input type=\"hidden\" name=\"RelayState\" value=\"state\" />\n';
-    form += '<input type=\"submit\" value=\"Access resources\" />\n';
-    form += '</form>\n';
-    return form;
-    
-}
-
-function create_volunteer_form() {
-    var form = '<form method = \"POST\" action=\"http://localhost:8889\">\n';
-    form += '<input type=\"hidden\" name=\"Volunteer\" value=\"True\" />\n';
-    form += '<input type=\"submit\" value=\"Volunteer resources\" />\n';
-    form += '</form>\n';
-    return form;
 }
 
 /**
@@ -332,7 +332,6 @@ function createCORSRequest(method, url){
 /**** MAIN ****/
 function main(){
     var server = http.createServer(request_handler);
-
 
     if(local){
         server.listen(PORT, function(){

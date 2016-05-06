@@ -13,6 +13,8 @@ var XMLWriter = require('xml-writer');
 var xmldoc = require('xmldoc');
 var fs = require('fs');
 var path = require('path');
+var formidable = require('formidable');
+var util = require('util');
 
 //signature requirements
 var select = require('xml-crypto').xpath;
@@ -29,13 +31,15 @@ const IDP_URL = "http://idp-cs339.rhcloud.com";
 const VOLUNTEER_HTML = "volunteer.html";
 
 //the number of milliseconds volunteers can be live
-const LIFETIME = 4000;
-
+const VOL_LIFETIME = 4000;
+const TOK_LIFETIME = 6000000;
 
 //url paths for incoming GET requests
 const INDEX = "./";
 const VOLUNTEER_PATH = "/volunteer";
 const VOLUNTEER_JS = "/volunteer.js";
+const JSON_UPLOAD = "/json_upload";
+const JS_UPLOAD = "/js_upload";
 
 const NO_TASK = "DONE"; //the xhr text when there are no outstanding tasks.
 
@@ -101,8 +105,8 @@ function request_handler(request, response){
 	    
 	    response.writeHead(200, {
                     'Content-Type' : 'text/html',
-			'Content-Length' : text.length,
-			'Access-Control-Allow-Origin' : '*'
+                    'Content-Length' : text.length,
+                    'Access-Control-Allow-Origin' : '*'
 			});
 	    response.end(text);
 	}
@@ -119,7 +123,7 @@ function request_handler(request, response){
 					   {'Content-Type' : content_type,
 						   'Content-Length' : content.length,
 						   'Expires' : new Date().toUTCString(),
-						   'Access-Control-Allow-Origin' : '*'
+                           'Access-Control-Allow-Origin' : '*'
 						   });
                         response.end(content, 'utf-8');
                     }
@@ -127,8 +131,28 @@ function request_handler(request, response){
 	}
     }
     
-    else if(request.method == 'POST'){
+    else if((request.method == 'POST')){
         var body = '';
+
+        console.log(request.url);
+
+        if((request.url == JSON_UPLOAD) || (request.url == JS_UPLOAD)){
+            var form = new formidable.IncomingForm();
+
+            form.parse(request, function(err, fields, files) {
+                response.writeHead(200, {
+                    'content-type': 'text/plain',
+                    'Access-Control-Allow-Origin' : '*'
+                });
+                response.write('received upload:\n\n');
+                response.end(util.inspect({fields: fields, files: files}));
+            });
+
+            form.on('end', function(fields, files){
+//                var temp_path = this.openedFiles[0].path;
+                console.log(this);
+            });
+        }
 
         //Get post data
         request.on('data', function (data) {
@@ -137,7 +161,7 @@ function request_handler(request, response){
         request.on('end', function() {
 	        //Determine type of post based on attributes
             var post = qs.parse(body);
-            console.log(body);
+            //console.log(body);
             if(post.Volunteer != null){
 
                 response.writeHead(301, {
@@ -151,14 +175,19 @@ function request_handler(request, response){
                 console.log('volunteer task request received');
 
                 var content = process_volunteer_request();
+
+                /**
+                TODO create new user
+                var token = new Date().getTime();
+                var expires = token + TOK_LIFETIME;
+                send_new_user(token,expires);
+                console.log('Token: ');
+                console.log(token);
+                */
                 //we have an idle volunteer, with no tasks outstanding
                 if(content == NO_TASK){
                     //NOTE, returns undefined when testing locally
                     add_volunteer(request.headers['x-forwarded-for']);
-
-                    var token = new Date().getTime();
-                    var expires = token + 60000000;
-                    send_new_user(token,expires)
 
                     //console.log(request.headers['x-forwarded-for']);
                 }
@@ -285,6 +314,22 @@ function send_new_user(newUser,expires) {
 }
 
 /**
+ * Appropriately formats and creates an XMLHttpRequest (to deal with cross domain)
+ */
+function createCORSRequest(method, url){
+    var xhr = new XMLHttpRequest();
+    if ("withCredentials" in xhr){
+        xhr.open(method, url, true);
+    } else if (typeof XDomainRequest != "undefined"){
+        xhr = new XDomainRequest();
+        xhr.open(method, url);
+    } else {
+        xhr = null;
+    }
+    return xhr;
+}
+
+/**
  * Takes a signed SAML Response and validates the signature
  */
 function validate_signature(samlResponse) {
@@ -380,13 +425,13 @@ function update_volunteers(){
 
     for( var key in avail_volunteers){
         if(avail_volunteers.hasOwnProperty(key)){
-            if ((cur_time - avail_volunteers[key]) > LIFETIME) {
+            if ((cur_time - avail_volunteers[key]) > VOL_LIFETIME) {
                 delete avail_volunteers[key];
             }
         }
     }
 
-    console.log("There are currently " + avail_volunteers.length + " volunteers available");
+    console.log("There are currently " + Object.keys(avail_volunteers).length + " volunteers available");
 }
 
 /**** MAIN ****/

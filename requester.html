@@ -1,0 +1,23 @@
+<!-- The requester job upload page -->
+<!DOCTYPE html>
+<html>
+<!--
+<head>
+    <script src="requester.js"></script>
+</head>
+-->
+<body>
+
+    <form method="POST" action="http://localhost:8889/js_upload" enctype="multipart/form-data">
+        <input id="map_reduce_job" type="file" multiple="multiple" accept=".js"/>
+        <input type="submit" value="Upload MapReduce File" />
+    </form>
+
+    <form method="POST" action="http://localhost:8889/json_upload" enctype="multipart/form-data">
+        <input id="data" type="file" multiple="multiple" accept=".json"/>
+        <input type="submit" value="Upload Data" />
+    </form>
+
+</body>
+
+</html>

@@ -303,60 +303,6 @@ function get_func_name(func){
 }
 
 /**
- * Creates the worker javascript code.
- * task is the javascript function to be embedded.
- * task_id is the map or reduce job id being serviced.
- */
-function create_task_js(task, task_id){
-    var js = "";
-
-    if(local){
-        url = "http://localhost:" + PORT;
-    }
-    else {
-        url = JOB_SERVER_URL;
-    }
-    var func_name = get_func_name(task);
-
-    js += "var url=" + "\"" + url + "\"" + ";\n";
-    js += "var task_id=" + "\"" + task_id + "\"" + ";\n";
-    js += task.toString() + "\n";
-    js += createCORSRequest.toString() + "\n";
-    js += process_task.toString() + "\n";
-
-    js += "process_task(" + func_name + ", task_id, url);";
-
-    return js;
-
-    /*
-    if(local){
-        url = "http://localhost:" + PORT;
-    }
-    else {
-        url = JOB_SERVER_URL;
-    }
-    var func_name = get_func_name(task);
-    var html = '<!DOCTYPE html>';
-    html += '<html> <head>';
-    //html += "<div id=\"output\"></div>";
-    html += '<script type=\"text/javascript\">\n';
-    html += "var url=" + "\"" + url + "\"" + ";\n";
-    html += "var task_id=" + "\"" + task_id + "\"" + ";\n";
-    html += task.toString();
-    html += createCORSRequest.toString();
-    html += process_task.toString();
-    html += "</script> </head>";
-    html += "<body onload=" + "\"process_task(" + func_name + ", task_id, url);" + "\">\n";
-    //html += "<header>" + task_id + "</header>\n";
-    html += JSON.stringify(data);
-    html += "</body>";
-    html += "</html>";
-
-    return html;
-    */
-}
-
-/**
  * Assigns a task (if any are available) to a volunteer. Returns a JSON obje
  */
 function process_volunteer_request(){

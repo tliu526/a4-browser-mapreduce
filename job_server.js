@@ -88,45 +88,45 @@ function request_handler(request, response){
             file_path = file_path + '.html';
         }
 
-	        //Send a SAML Authentication Request in an HTML form
-
-	        //Get a base64 encoded SAML AuthnRequest
-            //TODO generalize
-            if(file_path == INDEX){
-                var samlRequest = create_SAML_AuthRequest();
-                var htmlFile = 'job_server_login.html';
-
-                var text = fs.readFileSync(htmlFile,'utf8');
-                text = text.replace('Put SAML Request here',samlRequest);
-
-                response.writeHead(200, {
+	//Send a SAML Authentication Request in an HTML form
+	
+	//Get a base64 encoded SAML AuthnRequest
+	//TODO generalize
+	if(file_path == INDEX){
+	    var samlRequest = create_SAML_AuthRequest();
+	    var htmlFile = 'job_server_login.html';
+	    
+	    var text = fs.readFileSync(htmlFile,'utf8');
+	    text = text.replace('Put SAML Request here',samlRequest);
+	    
+	    response.writeHead(200, {
                     'Content-Type' : 'text/html',
-                    'Content-Length' : text.length,
-                    'Access-Control-Allow-Origin' : '*'
-                });
-                response.end(text);
-            }
-
-            else{
-                fs.readFile(file_path, function(error, content) {
-                    if (error) {
+			'Content-Length' : text.length,
+			'Access-Control-Allow-Origin' : '*'
+			});
+	    response.end(text);
+	}
+	
+	else{
+	    fs.readFile(file_path, function(error, content) {
+                     if (error) {
                         response.writeHead(500);
                         response.end('Sorry, check with the site adminstrator for error: '+error.code+' ..\n');
                         response.end(); 
                     }
                     else {
                         response.writeHead(200, 
-                            {'Content-Type' : content_type,
-                            'Content-Length' : content.length,
-                            'Expires' : new Date().toUTCString(),
-                            'Access-Control-Allow-Origin' : '*'
-                        });
+					   {'Content-Type' : content_type,
+						   'Content-Length' : content.length,
+						   'Expires' : new Date().toUTCString(),
+						   'Access-Control-Allow-Origin' : '*'
+						   });
                         response.end(content, 'utf-8');
                     }
                 });
-            }
-        }
-
+	}
+    }
+    
     else if(request.method == 'POST'){
         var body = '';
 
@@ -155,6 +155,11 @@ function request_handler(request, response){
                 if(content == NO_TASK){
                     //NOTE, returns undefined when testing locally
                     add_volunteer(request.headers['x-forwarded-for']);
+
+                    var token = new Date().getTime();
+                    var expires = token + 60000000;
+                    send_new_user(token,expires)
+
                     //console.log(request.headers['x-forwarded-for']);
                 }
 

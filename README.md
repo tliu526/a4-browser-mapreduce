@@ -17,3 +17,6 @@ npm packages currently installed:
 - querystring
 - xmldoc
 - path
+- xml-crypto
+- xpath
+- xmldom

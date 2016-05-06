@@ -28,11 +28,14 @@ const NO_TASK = "DONE"; //the xhr text when there are no outstanding tasks.
  * This function is embedded in the html page of the volunteer client, so no
  * references outside of this scope can be made.
  */
-function process_task(id, in_data){
-    var json_data = document.getElementById("data").innerHTML;
-    var func = document.getElementById("task").innerHTML;
-    console.log(json_data);
-    var data = JSON.parse(json_data);
+function process_task(){
+    var data = JSON.parse(document.getElementById("data").innerHTML);
+    console.log(data);
+    //uh-oh eval
+    var func = eval("(" + html_format(document.getElementById("task").innerHTML) + ")");
+    console.log(func);
+    var id = document.getElementById("task_id").innerHTML;
+
     var out = [];
 
     //map task
@@ -57,6 +60,17 @@ function process_task(id, in_data){
     send_post(response, post_url);
 }
 
+
+/**
+ * Formats str to be html compliant. Specifically escapes < and >.
+ */
+function html_format(str){
+    str = str.split("&lt;").join("<");
+    str = str.split("&gt;").join(">");
+    console.log(str);
+    return str;
+}
+
 /**
  * Creates and sends a post message; used for posting output back to job server
  * and requesting new tasks.
@@ -73,11 +87,15 @@ function send_post(message){
                 if(response != NO_TASK){
                     //var script = document.createElement("script");
                     //document.getElementsByTagName('head')[0].appendChild(script);
-                    console.log(xmlhttp.responseText);
+
                     //the returned tuple from process_volunteer_output
-                    var tup = JSON.parse(xmlhttp.responseText);
-                    document.getElementById("data").innerHTML = tup[0];
-                    document.getElementById("task").innerHTML = tup[1];
+                    var task = JSON.parse(xmlhttp.responseText);
+
+                    document.getElementById("task_id").innerHTML = task['id'];
+                    document.getElementById("data").innerHTML = task['data'];
+                    document.getElementById("task").innerHTML = task['func'];
+
+                    process_task();
                 }
             }
         }

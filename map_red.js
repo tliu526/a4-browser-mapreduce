@@ -49,7 +49,7 @@
 
             for(var i = 0; i < data_list.length; i++){
                 var map_id = 'm' + i;
-                var t = new structs.Task(map_id, map, data_list[i]);
+                var t = new structs.Task(map_id, map.toString(), data_list[i]);
                 this.map_tasks.enq(t);
                 this.map_todo.push(map_id);
             }
@@ -68,7 +68,7 @@
 
             for(var i = 0; i < data_list.length; i++){
                 var red_id = 'r' + i;
-                var t = new structs.Task(red_id, reduce, data_list[i]);
+                var t = new structs.Task(red_id, reduce.toString(), data_list[i]);
                 this.red_tasks.enq(t);
                 this.red_todo.push(red_id);
             }

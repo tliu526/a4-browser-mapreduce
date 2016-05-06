@@ -27,6 +27,8 @@ const INDEX = "./";
 const VOLUNTEER_PATH = "/volunteer";
 const VOLUNTEER_JS = "/volunteer.js";
 
+const NO_TASK = "DONE"; //the xhr text when there are no outstanding tasks.
+
 var root_url = '';
 
 if(local){
@@ -53,7 +55,7 @@ function request_handler(request, response){
 
         if (file_path == './') {
             //TODO change to index.html
-            //file_path = './job_server_login.html';
+            file_path = './job_server_login.html';
         }
 
         var ext = path.extname(file_path);
@@ -99,7 +101,7 @@ function request_handler(request, response){
                 fs.readFile(file_path, function(error, content) {
                     if (error) {
                         response.writeHead(500);
-                        response.end('Sorry, check with the site admin for error: '+error.code+' ..\n');
+                        response.end('Sorry, check with the site adminstrator for error: '+error.code+' ..\n');
                         response.end(); 
                     }
                     else {
@@ -116,15 +118,16 @@ function request_handler(request, response){
         }
 
     else if(request.method == 'POST'){
-	    //Get post data
-        console.log('got a post request!');
         var body = '';
+
+        //Get post data
         request.on('data', function (data) {
             body += data;
         });
         request.on('end', function() {
 	        //Determine type of post based on attributes
             var post = qs.parse(body);
+            console.log(body);
 
             //we know we have a volunteer joining
             if(post.Volunteer != null){
@@ -133,19 +136,21 @@ function request_handler(request, response){
                     Location: root_url + VOLUNTEER_PATH
                 });
                 response.end();
-                /*
-                console.log('volunteer join received');
+            }
 
-                var html = process_volunteer_join();
-                //console.log(html);
+            //we have a volunteer task request
+            else if(post.task_req != null){
+                console.log('volunteer task request received');
+
+                var content = process_volunteer_request();
+
                 response.writeHead(200, {
-                    'Content-Type' : 'text/html',
-                    'Content-Length' : html.length,
-                    'Expires' : new Date().toUTCString(),
-                    'Access-Control-Allow-Origin' : '*'
-                });
-                response.end(html);
-                */
+                        'Content-Type' : 'text/html',
+                        'Content-Length' : content.length,
+                        'Expires' : new Date().toUTCString(),
+                        'Access-Control-Allow-Origin' : '*'
+                    });
+                    response.end(content);   
             }
 
             //we know we have a volunteer response with data
@@ -167,7 +172,7 @@ function request_handler(request, response){
                     response.end(html);                    
                 }
                 else {
-                    response.end('Thanks for volunteering!');
+                    response.end('Thank ya for volunteering!');
                 }
             }
 
@@ -352,25 +357,18 @@ function create_task_js(task, task_id){
 }
 
 /**
- * Processes a volunteer request to join cluster and gives them a specific task 
- * to complete.
- *
- * Returns the html of the task they have been assigned.
+ * Assigns a task (if any are available) to a volunteer. Returns a JSON obje
  */
-function process_volunteer_join(){
-    var html = fs.readFileSync(VOLUNTEER_HTML, 'utf8');
-    /*
-    var task = cur_job.get_task();
-    if (task != null){
-        html = html.replace('SCRIPT', create_task_js(task['func'], task['id']));
-        html = html.replace('DATA', JSON.stringify(task['data']));
+function process_volunteer_request(){
+    if(!cur_job.is_complete()){
+        var task = cur_job.get_task();
+        //need to stringify the array of arrays
+        task['data'] = JSON.stringify(task['data']);
+        return JSON.stringify(task);
     }
     else {
-        //TODO handle
-        console.log('no more outstanding jobs');
+        return NO_TASK;
     }
-    */
-    return html;
 }
 
 /**
@@ -385,14 +383,10 @@ function process_volunteer_output(task_id, data){
     if(cur_job.is_complete()){
         console.log("Complete output:");
         console.log(cur_job.get_output());
-        return null;
+        return NO_TASK;
     }
     else{
-        var task = cur_job.get_task();
-        var script = create_task_js(task['func'], task['id']);
-        var data = JSON.stringify(task['data']);
-        var tup = [data, script];
-        return JSON.stringify(tup);
+        return process_volunteer_request();
     }
 }
 

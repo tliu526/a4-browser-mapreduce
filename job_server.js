@@ -28,6 +28,10 @@ const JOB_SERVER_URL = "http://bmr-cs339.rhcloud.com";
 const IDP_URL = "http://idp-cs339.rhcloud.com";
 const VOLUNTEER_HTML = "volunteer.html";
 
+//the number of milliseconds volunteers can be live
+const LIFETIME = 4000;
+
+
 //url paths for incoming GET requests
 const INDEX = "./";
 const VOLUNTEER_PATH = "/volunteer";
@@ -149,7 +153,9 @@ function request_handler(request, response){
                 var content = process_volunteer_request();
                 //we have an idle volunteer, with no tasks outstanding
                 if(content == NO_TASK){
-                    console.log(request.headers['x-forwarded-for']);
+                    //NOTE, returns undefined when testing locally
+                    add_volunteer(request.headers['x-forwarded-for']);
+                    //console.log(request.headers['x-forwarded-for']);
                 }
 
                 response.writeHead(200, {
@@ -295,9 +301,11 @@ Signature\' and namespace-uri(.)=\'http://www.w3.org/2000/09/xmldsig#\']')[0];
 
 /**** JOB MANAGEMENT FUNCTIONS AND VARS ****/
 
-//A queue of jobs managed by the job server
-var jobs = new structs.Queue();
+
+var jobs = new structs.Queue(); //A queue of jobs managed by the job server
 var cur_job = null;
+
+var avail_volunteers = {}; //tracks the number of available (idle) volunteers
 
 /**
  * Submits a job with the specified map and reduce functions to the job server. TODOO
@@ -349,6 +357,33 @@ function process_volunteer_output(task_id, data){
     }
 }
 
+/**
+ * Maintains and updates the avail_volunteers dict.
+ * (K,V) = (IP, timestamp). We remove entries that are stale.
+ */
+function add_volunteer(ips){
+    if(ips != undefined){
+        var ip = ips.split(", ")[0];
+        avail_volunteers[ip] = Date.now();
+    }
+}
+/**
+ * Checks avail_volunteers for "stale" volunteer nodes
+ */
+function update_volunteers(){
+    var cur_time = Date.now();
+
+    for( var key in avail_volunteers){
+        if(avail_volunteers.hasOwnProperty(key)){
+            if ((cur_time - avail_volunteers[key]) > LIFETIME) {
+                delete avail_volunteers[key];
+            }
+        }
+    }
+
+    console.log("There are currently " + avail_volunteers.length + " volunteers available");
+}
+
 /**** MAIN ****/
 function main(){
     var server = http.createServer(request_handler);
@@ -367,6 +402,9 @@ function main(){
             console.log( "Listening on " + server_ip_address + ", server_port " + server_port )
         });
     }
+    
+    check_volunteers();
+
     /*
     while(!cur_job.is_complete()){
         //do nothing, for now
@@ -376,6 +414,12 @@ function main(){
     console.log("Final output");
     console.log(cur_job.get_output());
     */
+}
+
+
+function check_volunteers(){
+    update_volunteers();
+    setTimeout(check_volunteers, 3000);
 }
 
 function test(){

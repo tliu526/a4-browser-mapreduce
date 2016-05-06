@@ -4,6 +4,7 @@
   "description": "One of the goals with this project is to implement a collaborative in-browser computation system with volunteers and job requesters. Participants can open a specified URL to contribute CPU cycles to an ongoing computation. We're currently utilizing a MapReduce framework as a proof of concept, but in theory any sort of computational work can be distributed across the compute nodes.",
   "main": "job_server.js",
   "dependencies": {
+    "formidable": "^1.0.17",
     "httpdispatcher": "^1.0.0",
     "path": "^0.12.7",
     "querystring": "^0.2.0",

@@ -20,3 +20,4 @@ npm packages currently installed:
 - xml-crypto
 - xpath
 - xmldom
+- formidable (for parsing file uploads)

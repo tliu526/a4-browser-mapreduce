@@ -24,7 +24,8 @@ var FileKeyInfo = require('xml-crypto').FileKeyInfo;
 var local = true;
 
 /**** WEB SERVER FUNCTIONS AND VARS ****/
-const PORT = 8889;
+const JOB_PORT = 8889;
+const IDP_PORT = 8890;
 const JOB_SERVER_URL = "http://bmr-cs339.rhcloud.com";
 const IDP_URL = "http://idp-cs339.rhcloud.com";
 const VOLUNTEER_HTML = "volunteer.html";
@@ -39,13 +40,16 @@ const VOLUNTEER_JS = "/volunteer.js";
 
 const NO_TASK = "DONE"; //the xhr text when there are no outstanding tasks.
 
-var root_url = '';
+var job_root_url = '';
+var idp_root_url = '';
 
 if(local){
-    root_url = "http://localhost:" + PORT;
+    job_root_url = "http://localhost:" + JOB_PORT;
+    idp_root_url = "http://localhost:" + IDP_PORT;
 }
 else {
-    root_url = JOB_SERVER_URL;
+    job_root_url = JOB_SERVER_URL;
+    idp_root_url = IDP_URL;
 }
 
 
@@ -140,7 +144,7 @@ else if(request.method == 'POST'){
             if(post.Volunteer != null){
 
                 response.writeHead(301, {
-                    Location: root_url + VOLUNTEER_PATH
+                    Location: job_root_url + VOLUNTEER_PATH
                 });
                 response.end();
             }
@@ -208,7 +212,7 @@ else if(request.method == 'POST'){
  * Send a new user's token to the IDP to allow for future authentication
  */
  function send_new_user(newUser,expires) {
-    var url = 'http://localhost:8890';
+    var url = idp_root_url;
     var request = createCORSRequest('POST',url);
     if (request) {
        var data = 'newUser=' + newUser + '&expires=' + expires;

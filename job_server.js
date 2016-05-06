@@ -14,6 +14,8 @@ var XMLWriter = require('xml-writer');
 var xmldoc = require('xmldoc');
 var fs = require('fs');
 var path = require('path');
+var formidable = require('formidable');
+
 
 //signature requirements
 var select = require('xml-crypto').xpath;
@@ -303,7 +305,7 @@ var avail_volunteers = {}; //tracks the number of available (idle) volunteers
         }
     }
 
-    console.log("There are currently " + avail_volunteers.length + " volunteers available");
+    console.log("There are currently " + Object.keys(avail_volunteers).length + " volunteers available");
 }
 
 /**** MAIN ****/
@@ -311,8 +313,8 @@ function main(){
     var server = http.createServer(request_handler);
 
     if(local){
-        server.listen(PORT, function(){
-            console.log("Server listening on: http://localhost:%s", PORT);
+        server.listen(JOB_PORT, function(){
+            console.log("Server listening on: http://localhost:%s", JOB_PORT);
         });
     }
     //For deployment on OpenShift

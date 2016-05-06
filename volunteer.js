@@ -6,6 +6,10 @@
 //for debugging on localhost
 var local = true;
 
+//to check whether a task is already being processed
+var working = false;
+var complete_tasks = 0;
+
 const PORT = 8889;
 const JOB_SERVER_URL = "http://bmr-cs339.rhcloud.com";
 
@@ -57,7 +61,13 @@ function process_task(){
 
     var out_str = JSON.stringify(out);
     var response = "task_id=" + id + "&" + "result=" + out_str;
+    
+    //display results to volunteer
+    complete_tasks += 1;
+    document.getElementById("result").innerHTML = complete_tasks;
+
     send_post(response, post_url);
+    working = false;
 }
 
 
@@ -95,6 +105,7 @@ function send_post(message){
                     document.getElementById("data").innerHTML = task['data'];
                     document.getElementById("task").innerHTML = task['func'];
 
+                    working = true;
                     process_task();
                 }
             }
@@ -120,5 +131,16 @@ function createCORSRequest(method, url){
     }
     return xhr;
 }
+/**
+ * continually asks the job server for a task, if the volunteer is not working.
+ */
+function request_task(){
+    console.log("request_task");
+    if(!working){
+        send_post(TASK_REQ);        
+    }
+    setTimeout(request_task, 3000);
+}
 
-send_post(TASK_REQ);
+request_task();
+

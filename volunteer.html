@@ -14,11 +14,19 @@
         TASK_ID
     </div>
 
+    <!--
+    <script type="text/javascript">
+    if(typeof(Worker !== "undefined")){
+        console.log("web-worker compatible");
+        var w = new Worker("volunteer.js");
+    }
+    </script>
+    -->
     <script src="volunteer.js"></script>
 </head>
 
 <body>
-    Thanks for volunteering!
+    Thanks for volunteering! You've helped complete <output id="result"></output> MapReduce tasks.
 </body>
 
 </html>

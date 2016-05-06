@@ -147,6 +147,10 @@ function request_handler(request, response){
                 console.log('volunteer task request received');
 
                 var content = process_volunteer_request();
+                //we have an idle volunteer, with no tasks outstanding
+                if(content == NO_TASK){
+                    console.log(request.headers['x-forwarded-for']);
+                }
 
                 response.writeHead(200, {
                         'Content-Type' : 'text/html',
@@ -163,17 +167,17 @@ function request_handler(request, response){
                 var task_id = post.task_id;
                 var data = post.result;
                 var data = JSON.parse(data);
-                var html = process_volunteer_output(task_id, data);
-                //console.log(html);
+                var content = process_volunteer_output(task_id, data);
+
                 //continue servicing outstanding jobs
-                if(html != null){
+                if(content != null){
                     response.writeHead(200, {
                         'Content-Type' : 'text/html',
-                        'Content-Length' : html.length,
+                        'Content-Length' : content.length,
                         'Expires' : new Date().toUTCString(),
                         'Access-Control-Allow-Origin' : '*'
                     });
-                    response.end(html);                    
+                    response.end(content);                    
                 }
                 else {
                     response.end('Thank ya for volunteering!');

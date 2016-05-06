@@ -12,6 +12,7 @@ var map_red = require('./map_red');
 var XMLWriter = require('xml-writer');
 var xmldoc = require('xmldoc');
 var fs = require('fs');
+var path = require('path');
 
 var local = true;
 
@@ -19,52 +20,124 @@ var local = true;
 const PORT = 8889;
 const JOB_SERVER_URL = "http://bmr-cs339.rhcloud.com";
 const IDP_URL = "http://idp-cs339.rhcloud.com";
+const VOLUNTEER_HTML = "volunteer.html";
+
+//url paths for incoming GET requests
+const INDEX = "./";
+const VOLUNTEER_PATH = "/volunteer";
+const VOLUNTEER_JS = "/volunteer.js";
+
+var root_url = '';
+
+if(local){
+    root_url = "http://localhost:" + PORT;
+}
+else {
+    root_url = JOB_SERVER_URL;
+}
+
 
 /**
  * Handles the requests sent to the webserver.
  * TODO actually handle requests
  */
 function request_handler(request, response){
-//    console.log(url.parse(request.url).pathname);
+
 //    response.end('Hello world! Path hit: ' + request.url);
    
     if(request.method == 'GET'){
+
+        console.log(request.url);
         
-	//Send a SAML Authentication Request in an HTML form
+        var file_path = '.' + request.url;
 
-	//Get a base64 encoded SAML AuthnRequest
-	var samlRequest = create_SAML_AuthRequest();
-	var htmlFile = 'job_server_login.html';
-	
-	var text = fs.readFileSync(htmlFile,'utf8');
-	text = text.replace('Put SAML Request here',samlRequest);
-	
-	response.writeHead(200, {
-		'Content-Type' : 'text/html',
-		    'Content-Length' : text.length,
-		    'Access-Control-Allow-Origin' : '*'
-       });
-	response.end(text);
+        if (file_path == './') {
+            //TODO change to index.html
+            //file_path = './job_server_login.html';
+        }
 
-    }
-    
+        var ext = path.extname(file_path);
+        var content_type = '';
+        switch(ext){
+            case '.js':
+            content_type = 'text/javascript';
+            break;
+
+            case '.html':
+            content_type = 'text/html';
+            break;
+
+            case '.ico':
+            content_type = 'image/x-icon';
+            break;
+
+            default:
+            content_type = 'text/html';
+            file_path = file_path + '.html';
+        }
+
+	        //Send a SAML Authentication Request in an HTML form
+
+	        //Get a base64 encoded SAML AuthnRequest
+            //TODO generalize
+            if(file_path == INDEX){
+                var samlRequest = create_SAML_AuthRequest();
+                var htmlFile = 'job_server_login.html';
+
+                var text = fs.readFileSync(htmlFile,'utf8');
+                text = text.replace('Put SAML Request here',samlRequest);
+
+                response.writeHead(200, {
+                    'Content-Type' : 'text/html',
+                    'Content-Length' : text.length,
+                    'Access-Control-Allow-Origin' : '*'
+                });
+                response.end(text);
+            }
+
+            else{
+                fs.readFile(file_path, function(error, content) {
+                    if (error) {
+                        response.writeHead(500);
+                        response.end('Sorry, check with the site admin for error: '+error.code+' ..\n');
+                        response.end(); 
+                    }
+                    else {
+                        response.writeHead(200, 
+                            {'Content-Type' : content_type,
+                            'Content-Length' : content.length,
+                            'Expires' : new Date().toUTCString(),
+                            'Access-Control-Allow-Origin' : '*'
+                        });
+                        response.end(content, 'utf-8');
+                    }
+                });
+            }
+        }
+
     else if(request.method == 'POST'){
-	//Get post data
+	    //Get post data
         console.log('got a post request!');
         var body = '';
         request.on('data', function (data) {
             body += data;
         });
         request.on('end', function() {
-	    //Determine type of post based on attributes
+	        //Determine type of post based on attributes
             var post = qs.parse(body);
 
-            //we know we have a volunteer request
+            //we know we have a volunteer joining
             if(post.Volunteer != null){
-                console.log('volunteer request received');
 
-                var html = process_volunteer_request();
-                console.log(html);
+                response.writeHead(301, {
+                    Location: root_url + VOLUNTEER_PATH
+                });
+                response.end();
+                /*
+                console.log('volunteer join received');
+
+                var html = process_volunteer_join();
+                //console.log(html);
                 response.writeHead(200, {
                     'Content-Type' : 'text/html',
                     'Content-Length' : html.length,
@@ -72,6 +145,7 @@ function request_handler(request, response){
                     'Access-Control-Allow-Origin' : '*'
                 });
                 response.end(html);
+                */
             }
 
             //we know we have a volunteer response with data
@@ -80,7 +154,21 @@ function request_handler(request, response){
                 var task_id = post.task_id;
                 var data = post.result;
                 var data = JSON.parse(data);
-                process_volunteer_output(task_id, data);
+                var html = process_volunteer_output(task_id, data);
+                //console.log(html);
+                //continue servicing outstanding jobs
+                if(html != null){
+                    response.writeHead(200, {
+                        'Content-Type' : 'text/html',
+                        'Content-Length' : html.length,
+                        'Expires' : new Date().toUTCString(),
+                        'Access-Control-Allow-Origin' : '*'
+                    });
+                    response.end(html);                    
+                }
+                else {
+                    response.end('Thanks for volunteering!');
+                }
             }
 
 	    //we know we have a SAMLResponse
@@ -187,7 +275,6 @@ function send_new_user(newUser,expires) {
     
 }
 
-
 /**** JOB MANAGEMENT FUNCTIONS AND VARS ****/
 
 //A queue of jobs managed by the job server
@@ -211,14 +298,32 @@ function get_func_name(func){
 }
 
 /**
- * Creates the worker html page.
- * TODO think about parameters more, this is just a working prototype
- * task is currently the javascript function 
- * task_name is currently the function name implemented in task
+ * Creates the worker javascript code.
+ * task is the javascript function to be embedded.
+ * task_id is the map or reduce job id being serviced.
  */
-function create_task_html(task, task_id, data){
-    //TODO change
-    var url = '';
+function create_task_js(task, task_id){
+    var js = "";
+
+    if(local){
+        url = "http://localhost:" + PORT;
+    }
+    else {
+        url = JOB_SERVER_URL;
+    }
+    var func_name = get_func_name(task);
+
+    js += "var url=" + "\"" + url + "\"" + ";\n";
+    js += "var task_id=" + "\"" + task_id + "\"" + ";\n";
+    js += task.toString() + "\n";
+    js += createCORSRequest.toString() + "\n";
+    js += process_task.toString() + "\n";
+
+    js += "process_task(" + func_name + ", task_id, url);";
+
+    return js;
+
+    /*
     if(local){
         url = "http://localhost:" + PORT;
     }
@@ -227,7 +332,9 @@ function create_task_html(task, task_id, data){
     }
     var func_name = get_func_name(task);
     var html = '<!DOCTYPE html>';
-    html += '<html> <head> <script type=\"text/javascript\">\n';
+    html += '<html> <head>';
+    //html += "<div id=\"output\"></div>";
+    html += '<script type=\"text/javascript\">\n';
     html += "var url=" + "\"" + url + "\"" + ";\n";
     html += "var task_id=" + "\"" + task_id + "\"" + ";\n";
     html += task.toString();
@@ -241,21 +348,36 @@ function create_task_html(task, task_id, data){
     html += "</html>";
 
     return html;
+    */
 }
 
 /**
- * Processes a volunteer request and gives them a specific task to complete.
+ * Processes a volunteer request to join cluster and gives them a specific task 
+ * to complete.
  *
  * Returns the html of the task they have been assigned.
  */
-function process_volunteer_request(){
+function process_volunteer_join(){
+    var html = fs.readFileSync(VOLUNTEER_HTML, 'utf8');
+    /*
     var task = cur_job.get_task();
-    return create_task_html(task['func'], task['id'], task['data']);
+    if (task != null){
+        html = html.replace('SCRIPT', create_task_js(task['func'], task['id']));
+        html = html.replace('DATA', JSON.stringify(task['data']));
+    }
+    else {
+        //TODO handle
+        console.log('no more outstanding jobs');
+    }
+    */
+    return html;
 }
 
 /**
  * Processes the data returned from the volunteer request, and updates the cur_job.
- * TODO then redirect volunteer to a new task.
+ * Then, redirects volunteer to a new task.
+ * 
+ * Returns a JSON array of [data, script].
  */
 function process_volunteer_output(task_id, data){
     cur_job.submit_output(task_id, data);
@@ -263,77 +385,15 @@ function process_volunteer_output(task_id, data){
     if(cur_job.is_complete()){
         console.log("Complete output:");
         console.log(cur_job.get_output());
+        return null;
     }
-}
-
-/**
- * Processes a single task appropriately, and sends the response. 
- * This function is embedded in the html page of the volunteer client.
- */
-function process_task(func, id, url){
-    console.log("process_task called!");
-    var json_data = document.body.innerHTML;
-    var data = JSON.parse(json_data);
-    var out = [];
-
-    //map task
-    if(id.substring(0,1) == 'm'){
-        for (var i = 0; i < data.length; i++){
-            var k = data[i][0];
-            var v = data[i][1];
-            //TODO assumes that output of the map is a list
-            out = out.concat(func(k, v));
-        }
+    else{
+        var task = cur_job.get_task();
+        var script = create_task_js(task['func'], task['id']);
+        var data = JSON.stringify(task['data']);
+        var tup = [data, script];
+        return JSON.stringify(tup);
     }
-    else if(id.substring(0,1) == 'r'){
-        for (var i = 0; i < data.length; i++){
-            var k = data[i][0];
-            var v = data[i][1];
-            out.push([k, func(k, v)]);
-        }
-    }
-
-    var out_str = JSON.stringify(out);
-    //Create and send back POST form
-    var request = createCORSRequest("post", url);
-
-    if(request){
-        console.log("sending post!");
-        var response = "task_id=" + id + "&" + "result=" + out_str;
-        request.send(response);
-    }
-}
-
-/** a test function */
-function add(){
-    var vals = document.body.innerHTML.split(",");
-    //maps the strings in val to numbers
-    for(var i = 0; i < vals.length; i++){
-        vals[i] = parseInt(vals[i],10);
-    }
-    var total = vals.reduce(function(a,b){
-        return a + b;
-    });
-
-    //Create and send back POST form
-    var request = createCORSRequest("post", "http://localhost:8889");
-
-    if(request){
-        request.send(total);
-    }
-}
-
-function createCORSRequest(method, url){
-    var xhr = new XMLHttpRequest();
-    if ("withCredentials" in xhr){
-        xhr.open(method, url, true);
-    } else if (typeof XDomainRequest != "undefined"){
-        xhr = new XDomainRequest();
-        xhr.open(method, url);
-    } else {
-        xhr = null;
-    }
-    return xhr;
 }
 
 /**** MAIN ****/

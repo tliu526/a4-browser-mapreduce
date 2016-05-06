@@ -183,6 +183,7 @@
             }
             else{
                 console.log("No outstanding tasks");
+                return null;
             }
         }
     }  

@@ -16,9 +16,26 @@ var sqlite3 = require('sqlite3').verbose();
 var SignedXml = require('xml-crypto').SignedXml;
 var saml = require('./saml_functions')
 
-const PORT = 8890;
-
 var relayState = "sampleRelayState";
+
+const JOB_PORT = 8889;
+const IDP_PORT = 8890;
+const JOB_SERVER_URL = "http://bmr-cs339.rhcloud.com";
+const IDP_URL = "http://idp-cs339.rhcloud.com";
+var job_root_url = '';
+var idp_root_url = '';
+
+var local = true;
+
+if(local){
+    job_root_url = "http://localhost:" + JOB_PORT;
+    idp_root_url = "http://localhost:" + IDP_PORT;
+}
+else {
+    job_root_url = JOB_SERVER_URL;
+    idp_root_url = IDP_URL;
+}
+
 
 /**
  * Handle incoming requests 
@@ -42,6 +59,7 @@ var relayState = "sampleRelayState";
 		    
 		    var htmlFile = 'identity_provider_login.html';
 		    var text = fs.readFileSync(htmlFile,'utf8');
+            text = text.replace('Put path here',idp_root_url)
 		    response.writeHead(200, {
              'Content-Type' : 'text/html',
              'Content-Length' : text.length,
@@ -64,7 +82,7 @@ var relayState = "sampleRelayState";
 		    var newUser = post.newUser;
 		    var expires = post.expires
 		    console.log('Just received a new user. New user\'s token: ' + post.newUser + '. Adding new user to database');
-		    add_new_user(newUser,expires,responsePath);
+		    add_new_user(newUser,expires);
 
 		    //Respond with success message to job_server
 		    response.writeHead(200, {
@@ -125,6 +143,7 @@ var relayState = "sampleRelayState";
     //Insert SAML Response into HTML file
     var htmlFile = 'identity_provider_responseForm.html';
     var text = fs.readFileSync(htmlFile,'utf8');
+    text = text.replace('Put path here',job_root_url);
     text = text.replace('Put SAML Response here',samlResponse);
     text = text.replace('Put RelayState here',relayState);
     
@@ -187,8 +206,8 @@ function main() {
 
     //Create server and listen for requests
     var server = http.createServer(request_handler);
-    server.listen(PORT, function(){
-       console.log("Identity provider listening on: http://localhost:%s", PORT);
+    server.listen(IDP_PORT, function(){
+       console.log("Identity provider listening on: http://localhost:%s", IDP_PORT);
    });
 }
 

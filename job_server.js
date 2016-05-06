@@ -311,8 +311,8 @@ function main(){
     var server = http.createServer(request_handler);
 
     if(local){
-        server.listen(PORT, function(){
-            console.log("Server listening on: http://localhost:%s", PORT);
+        server.listen(JOB_PORT, function(){
+            console.log("Server listening on: http://localhost:%s", JOB_PORT);
         });
     }
     //For deployment on OpenShift

@@ -197,7 +197,6 @@ module.exports = {
 	* Validates the signature of a signed SAML Response
 	*/
 	validate_signature: function(samlResponse) {
-		console.log('here');
 
 	 	//Get DOM object
 	 	var samlResponseDom = new dom({ignoreWhiteSpace: true}).parseFromString(samlResponse);
@@ -208,16 +207,10 @@ module.exports = {
 	    //Extract signature
 	    var signature = select(samlResponseDom,'//*[local-name(.)=\"Signature\" and namespace-uri(.)=\"http://www.w3.org/2000/09/xmldsig#\"]')[0];
 
-		console.log('here2');
-
-
 	    //Create signature checker
 	    var sigChecker = new SignedXml();
 	    sigChecker.keyInfoProvider = new FileKeyInfo('public.pem');
 	    sigChecker.loadSignature(signature.toString());
-
-		console.log('here3');
-
 
 	    //Check signautre
 	    var result = sigChecker.checkSignature(samlResponse);

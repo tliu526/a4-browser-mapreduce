@@ -15,7 +15,7 @@ var xmldoc = require('xmldoc');
 var fs = require('fs');
 var path = require('path');
 var formidable = require('formidable');
-
+var util = require('util');
 
 //signature requirements
 var select = require('xml-crypto').xpath;
@@ -38,6 +38,8 @@ const LIFETIME = 4000;
 //url paths for incoming GET requests
 const INDEX = "./";
 const VOLUNTEER_PATH = "/volunteer";
+const JS_UPLOAD = "/js_upload";
+const JSON_UPLOAD = "/json_upload";
 const VOLUNTEER_JS = "/volunteer.js";
 
 const NO_TASK = "DONE"; //the xhr text when there are no outstanding tasks.
@@ -133,8 +135,20 @@ if(request.method == 'GET'){
    }
 }
 
-else if(request.method == 'POST'){
-    var body = '';
+    else if(request.method == 'POST'){
+        var body = '';
+
+        if(request.url == JSON_UPLOAD){
+            var form = new formidable.IncomingForm();
+
+            form.parse(request, function(err, fields, files) {
+              response.writeHead(200, {'content-type': 'text/plain'});
+              response.write('received upload:\n\n');
+              response.end(util.inspect({fields: fields, files: files}));
+          });
+
+            return;
+        }
 
         //Get post data
         request.on('data', function (data) {

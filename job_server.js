@@ -9,6 +9,7 @@ var url = require('url');
 var qs = require('querystring');
 var structs = require('./structs');
 var map_red = require('./map_red');
+var saml = require('./saml_functions');
 var XMLWriter = require('xml-writer');
 var xmldoc = require('xmldoc');
 var fs = require('fs');
@@ -31,7 +32,6 @@ const VOLUNTEER_HTML = "volunteer.html";
 //the number of milliseconds volunteers can be live
 const LIFETIME = 4000;
 
-
 //url paths for incoming GET requests
 const INDEX = "./";
 const VOLUNTEER_PATH = "/volunteer";
@@ -53,17 +53,17 @@ else {
  * Handles the requests sent to the webserver.
  * TODO actually handle requests
  */
-function request_handler(request, response){
+ function request_handler(request, response){
 
 //    response.end('Hello world! Path hit: ' + request.url);
-   
-    if(request.method == 'GET'){
 
-        console.log(request.url);
-        
-        var file_path = '.' + request.url;
+if(request.method == 'GET'){
 
-        if (file_path == './') {
+    console.log(request.url);
+
+    var file_path = '.' + request.url;
+
+    if (file_path == './') {
             //TODO change to index.html
             file_path = './job_server_login.html';
         }
@@ -93,42 +93,42 @@ function request_handler(request, response){
 	//Get a base64 encoded SAML AuthnRequest
 	//TODO generalize
 	if(file_path == INDEX){
-	    var samlRequest = create_SAML_AuthRequest();
-	    var htmlFile = 'job_server_login.html';
-	    
-	    var text = fs.readFileSync(htmlFile,'utf8');
-	    text = text.replace('Put SAML Request here',samlRequest);
-	    
-	    response.writeHead(200, {
-                    'Content-Type' : 'text/html',
-			'Content-Length' : text.length,
-			'Access-Control-Allow-Origin' : '*'
-			});
-	    response.end(text);
-	}
-	
-	else{
-	    fs.readFile(file_path, function(error, content) {
-                     if (error) {
-                        response.writeHead(500);
-                        response.end('Sorry, check with the site adminstrator for error: '+error.code+' ..\n');
-                        response.end(); 
-                    }
-                    else {
-                        response.writeHead(200, 
-					   {'Content-Type' : content_type,
-						   'Content-Length' : content.length,
-						   'Expires' : new Date().toUTCString(),
-						   'Access-Control-Allow-Origin' : '*'
-						   });
-                        response.end(content, 'utf-8');
-                    }
-                });
-	}
-    }
-    
-    else if(request.method == 'POST'){
-        var body = '';
+       var samlRequest = saml.create_saml_authnRequest();
+       var htmlFile = 'job_server_login.html';
+
+       var text = fs.readFileSync(htmlFile,'utf8');
+       text = text.replace('Put SAML Request here',samlRequest);
+
+       response.writeHead(200, {
+        'Content-Type' : 'text/html',
+        'Content-Length' : text.length,
+        'Access-Control-Allow-Origin' : '*'
+    });
+       response.end(text);
+   }
+
+   else{
+       fs.readFile(file_path, function(error, content) {
+           if (error) {
+            response.writeHead(500);
+            response.end('Sorry, check with the site adminstrator for error: '+error.code+' ..\n');
+            response.end(); 
+        }
+        else {
+            response.writeHead(200, 
+                {'Content-Type' : content_type,
+                'Content-Length' : content.length,
+                'Expires' : new Date().toUTCString(),
+                'Access-Control-Allow-Origin' : '*'
+            });
+            response.end(content, 'utf-8');
+        }
+    });
+   }
+}
+
+else if(request.method == 'POST'){
+    var body = '';
 
         //Get post data
         request.on('data', function (data) {
@@ -137,7 +137,6 @@ function request_handler(request, response){
         request.on('end', function() {
 	        //Determine type of post based on attributes
             var post = qs.parse(body);
-            console.log(body);
             if(post.Volunteer != null){
 
                 response.writeHead(301, {
@@ -164,12 +163,12 @@ function request_handler(request, response){
                 }
 
                 response.writeHead(200, {
-                        'Content-Type' : 'text/html',
-                        'Content-Length' : content.length,
-                        'Expires' : new Date().toUTCString(),
-                        'Access-Control-Allow-Origin' : '*'
-                    });
-                    response.end(content);   
+                    'Content-Type' : 'text/html',
+                    'Content-Length' : content.length,
+                    'Expires' : new Date().toUTCString(),
+                    'Access-Control-Allow-Origin' : '*'
+                });
+                response.end(content);   
             }
 
             //Case 2: Volunteer response
@@ -195,114 +194,28 @@ function request_handler(request, response){
                 }
             }
 
-	    //Case 3: SAML Response
-	    else if(post.SAMLResponse != null) {
-		//Get decoded SAML Response in string
-		var samlResponseBase64 = post.SAMLResponse;
-		var samlResponse = new Buffer(samlResponseBase64,'base64').toString('utf8');
-		
-		//Check signature
-		if (validate_signature(samlResponse)) {
-		    console.log('Signature successfully verified');
-		} else {
-		    console.log('Signature not verified. Access will be denied');
-		    //TODO redirect user
-		}
-
-		//Now that signature is verified, parse the response
-		var xmlObject = new xmldoc.XmlDocument(samlResponse);
-
-		//Get issuer and ensure it's the correct identity provider
-		var issuer = xmlObject.childNamed('saml:Issuer');
-		if (issuer.val.trim() != 'http://localhost:8890') {
-		    console.log('Invalid identity provider. Response ignored');
-		    return;
-		}
-
-		//Get assertion in an object
-		var assertion = xmlObject.childNamed('saml:Assertion');
-
-		//Check NotOnOrAfter condition
-		var conditions = assertion.childNamed('saml:Conditions');
-		var expires = conditions.attr.NotOnOrAfter;
-		var now = new Date().getTime();
-		if (expires < now) {
-		    console.log('SAML Assertion has expired. Access will be denied');
-		    //TODO redirect user
-		}
-		
-		//Check attribute given my IDP
-		var attributeValue = assertion.childNamed('saml:AttributeStatement').childNamed('saml:Attribute').childNamed('saml:AttributeValue').val; 
-		if (attributeValue == 'Resource volunteer') {
-		    console.log('SAML Response has confirmed that user is a resource volunteer. Access will be granted');
-		    //TODO redirect user
-		} else {
-		    console.log('SAML Response has not confirmed that user is a resource volunteer. Access will be denied');
-		    //TODO redirect user
-		}
-	    }
-
+	        //Case 3: SAML Response
+	        else if(post.SAMLResponse != null) {
+                var status = saml.validate_response(post.SAMLResponse);
+                console.log(status);
+                //TODO redirect based on status code
+            }
         });
     }
-}
-
-
-/**
- * Creates and returns a SAMLAuthentication request 
- */
-function create_SAML_AuthRequest() {
-    var writer = new XMLWriter(true);
-    
-    writer.startDocument();
-    
-    writer.startElement('samlp:AuthnRequest');
-    writer.writeAttribute('xmlns:samlp','urn:oasis:names:tc:SAML:2.0:protocol');
-    writer.writeAttribute('xmlns:saml','urn:oasis:names:tc:SAML:2.0:assertion');
-    writer.writeAttribute('Version','2.0');
-    var now = new Date().getTime();
-    writer.writeAttribute('IssueInstant',now);
-
-    writer.writeElement('saml:Issuer','localhost:8889');
-    
-    writer.endElement();
-    
-    var samlRequest = writer.toString();
-    var samlRequestBase64 = new Buffer(samlRequest).toString('base64');
-    return samlRequestBase64;
 }
 
 /**
  * Send a new user's token to the IDP to allow for future authentication
  */
-function send_new_user(newUser,expires) {
+ function send_new_user(newUser,expires) {
     var url = 'http://localhost:8890';
     var request = createCORSRequest('POST',url);
     if (request) {
-	var data = 'newUser=' + newUser + '&expires=' + expires;
-	request.send(data);
-    }
-    
-}
+       var data = 'newUser=' + newUser + '&expires=' + expires;
+       request.send(data);
+   }
 
-/**
- * Takes a signed SAML Response and validates the signature
- */
-function validate_signature(samlResponse) {
-    var samlResponseDom = new dom({ignoreWhiteSpace: true}).parseFromString(samlResponse);
-    var signature = select(samlResponseDom,'//*[local-name(.)=\'\
-Signature\' and namespace-uri(.)=\'http://www.w3.org/2000/09/xmldsig#\']')[0];
-    var sigChecker = new SignedXml();
-    sigChecker.keyInfoProvider = new FileKeyInfo('public.pem');
-    sigChecker.loadSignature(signature.toString());
-    var result = sigChecker.checkSignature(samlResponse);
-    if (!result) {
-	console.log(sigChecker.validationErrors);
-	return false;
-    } else {
-	return true;
-    } 
 }
-
 
 /**** JOB MANAGEMENT FUNCTIONS AND VARS ****/
 
@@ -315,14 +228,14 @@ var avail_volunteers = {}; //tracks the number of available (idle) volunteers
 /**
  * Submits a job with the specified map and reduce functions to the job server. TODOO
  */
-function submit_job(map, reduce, data){
+ function submit_job(map, reduce, data){
     //TODO
 }
 
 /**
  * Helper function for retrieving the function name of func
  */
-function get_func_name(func){
+ function get_func_name(func){
     var f_str = func.toString();
     f_str = f_str.substring('function '.length);
     return f_str.substring(0, f_str.indexOf('('));
@@ -331,7 +244,7 @@ function get_func_name(func){
 /**
  * Assigns a task (if any are available) to a volunteer. Returns a JSON obje
  */
-function process_volunteer_request(){
+ function process_volunteer_request(){
     if(!cur_job.is_complete()){
         var task = cur_job.get_task();
         //need to stringify the array of arrays
@@ -349,7 +262,7 @@ function process_volunteer_request(){
  * 
  * Returns a JSON array of [data, script].
  */
-function process_volunteer_output(task_id, data){
+ function process_volunteer_output(task_id, data){
     cur_job.submit_output(task_id, data);
 
     if(cur_job.is_complete()){
@@ -366,7 +279,7 @@ function process_volunteer_output(task_id, data){
  * Maintains and updates the avail_volunteers dict.
  * (K,V) = (IP, timestamp). We remove entries that are stale.
  */
-function add_volunteer(ips){
+ function add_volunteer(ips){
     if(ips != undefined){
         var ip = ips.split(", ")[0];
         avail_volunteers[ip] = Date.now();
@@ -375,7 +288,7 @@ function add_volunteer(ips){
 /**
  * Checks avail_volunteers for "stale" volunteer nodes
  */
-function update_volunteers(){
+ function update_volunteers(){
     var cur_time = Date.now();
 
     for( var key in avail_volunteers){

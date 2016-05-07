@@ -36,7 +36,7 @@ const VOLUNTEER_HTML = "volunteer.html";
 const LIFETIME = 4000;
 
 //url paths for incoming GET requests
-const INDEX = "./";
+const INDEX = "./job_server_login.html";
 const VOLUNTEER_PATH = "/volunteer";
 const JS_UPLOAD = "/js_upload";
 const JSON_UPLOAD = "/json_upload";
@@ -65,75 +65,76 @@ else {
 
 //    response.end('Hello world! Path hit: ' + request.url);
 
-if(request.method == 'GET'){
+    if(request.method == 'GET'){
 
-    console.log(request.url);
+        console.log(request.url);
 
-    var file_path = '.' + request.url;
+        var file_path = '.' + request.url;
 
-    if (file_path == './') {
-            //TODO change to index.html
-            file_path = './job_server_login.html';
+        if (file_path == './') {
+                //TODO change to index.html
+                file_path = './job_server_login.html';
         }
 
-        var ext = path.extname(file_path);
-        var content_type = '';
-        switch(ext){
-            case '.js':
-            content_type = 'text/javascript';
-            break;
+            var ext = path.extname(file_path);
+            var content_type = '';
+            switch(ext){
+                case '.js':
+                content_type = 'text/javascript';
+                break;
 
-            case '.html':
-            content_type = 'text/html';
-            break;
+                case '.html':
+                content_type = 'text/html';
+                break;
 
-            case '.ico':
-            content_type = 'image/x-icon';
-            break;
+                case '.ico':
+                content_type = 'image/x-icon';
+                break;
 
-            default:
-            content_type = 'text/html';
-            file_path = file_path + '.html';
-        }
+                default:
+                content_type = 'text/html';
+                file_path = file_path + '.html';
+            }
 
-	//Send a SAML Authentication Request in an HTML form
-	
-	//Get a base64 encoded SAML AuthnRequest
-	//TODO generalize
-	if(file_path == INDEX){
-       var samlRequest = saml.create_saml_authnRequest();
-       var htmlFile = 'job_server_login.html';
+    	//Send a SAML Authentication Request in an HTML form
+    	
+    	//Get a base64 encoded SAML AuthnRequest
+    	//TODO generalize
+    	if(file_path == INDEX){
+           var samlRequest = saml.create_saml_authnRequest();
+           var htmlFile = 'job_server_login.html';
 
-       var text = fs.readFileSync(htmlFile,'utf8');
-       text = text.replace('Put SAML Request here',samlRequest);
+           var text = fs.readFileSync(htmlFile,'utf8');
+           text = text.replace('Put SAML Request here',samlRequest);
+           text = text.replace('Put idp url here',idp_root_url);
 
-       response.writeHead(200, {
-        'Content-Type' : 'text/html',
-        'Content-Length' : text.length,
-        'Access-Control-Allow-Origin' : '*'
-    });
-       response.end(text);
-   }
+           response.writeHead(200, {
+            'Content-Type' : 'text/html',
+            'Content-Length' : text.length,
+            'Access-Control-Allow-Origin' : '*'
+        });
+           response.end(text);
+       }
 
-   else{
-       fs.readFile(file_path, function(error, content) {
-           if (error) {
-            response.writeHead(500);
-            response.end('Sorry, check with the site adminstrator for error: '+error.code+' ..\n');
-            response.end(); 
-        }
-        else {
-            response.writeHead(200, 
-                {'Content-Type' : content_type,
-                'Content-Length' : content.length,
-                'Expires' : new Date().toUTCString(),
-                'Access-Control-Allow-Origin' : '*'
-            });
-            response.end(content, 'utf-8');
-        }
-    });
-   }
-}
+       else{
+           fs.readFile(file_path, function(error, content) {
+               if (error) {
+                response.writeHead(500);
+                response.end('Sorry, check with the site adminstrator for error: '+error.code+' ..\n');
+                response.end(); 
+            }
+            else {
+                response.writeHead(200, 
+                    {'Content-Type' : content_type,
+                    'Content-Length' : content.length,
+                    'Expires' : new Date().toUTCString(),
+                    'Access-Control-Allow-Origin' : '*'
+                });
+                response.end(content, 'utf-8');
+            }
+        });
+       }
+    }
 
     else if(request.method == 'POST'){
         var body = '';

@@ -15,7 +15,7 @@
      * map: the map function as specified by the user
      * reduce: the reduce function as specified by the user
      */
-    Job: function(map, reduce, data){
+    Job: function(map, reduce, data, num_m_tasks, num_r_tasks){
         var structs = require('./structs');
 
         /**** INITIALIZATION ****/
@@ -24,6 +24,9 @@
         this.map_tasks = new structs.Queue();
         this.red_tasks = new structs.Queue();
         this.complete = false;
+
+        this.num_m_tasks = num_m_tasks;
+        this.num_r_tasks = num_r_tasks;
 
         //track the outstanding map/reduce tasks
         this.map_todo = [];
@@ -44,8 +47,8 @@
          * 
          * Returns the number of tasks submitted to queue.
          */
-        this.create_map_tasks = function(num_chunks){
-            var data_list = structs.chunk(data, num_chunks);
+        this.create_map_tasks = function(){
+            var data_list = structs.chunk(data, this.num_m_tasks);
 
             for(var i = 0; i < data_list.length; i++){
                 var map_id = 'm' + i;
@@ -63,8 +66,8 @@
          * 
          * Returns the number of tasks submitted to queue.
          */
-        this.create_red_tasks = function(data, num_chunks){
-            var data_list = structs.chunk(data, num_chunks);
+        this.create_red_tasks = function(data){
+            var data_list = structs.chunk(data, this.num_r_tasks);
 
             for(var i = 0; i < data_list.length; i++){
                 var red_id = 'r' + i;

@@ -1,5 +1,7 @@
 /**
  * The Job Server for serving both volunteer and job requests.
+ * TODO stretch goal: be able to service multiple jobs at once, need to track
+ * partial results with requester ids, possibly storing them to a DB?
  * (c) 2016 Tony Liu, Michael Shaw.
  */
 
@@ -135,44 +137,55 @@ else {
     }
 
     else if(request.method == 'POST'){
-        var body = '';
+        var ip;
+        if(local){ ip = "120.0.0.1"; }
+        else { ip = request.headers['x-forwarded-for'][0]; }
 
+        /** CASE 1: If there is uploaded data incoming **/
         if(request.url.includes('_upload')){
             var form = new formidable.IncomingForm();
             
             form.parse(request, function(err, fields, files) {
-              response.writeHead(200, {'content-type': 'text/plain'});
-              response.write('received upload:\n\n');
-              response.end(util.inspect({fields: fields, files: files}));
+
+                response.writeHead(301, {
+                    Location: job_root_url + 'requester/start_job'
+                });
+                response.end();
+                /*
+                response.writeHead(200, {'content-type': 'text/plain'});
+                response.write('received upload:\n\n');
+                response.end(util.inspect({fields: fields, files: files}));
+                */
             });
 
             form.on('end', function(fields, files){
                 var temp_path = this.openedFiles[0].path;
+                
+                if(request.url == JS_UPLOAD){
 
-                var ip;
-                if(local){ ip = "120.0.0.1"; }
-                else { ip = request.headers['x-forwarded-for'][0]; }
-
-                if(request.url == JSON_UPLOAD){
-                    var text = fs.readFileSync(temp_path,'utf8');
-                    requester_data = JSON.parse(text);
-                    add_user_data(ip, requester_data);
-                }
-                else if(request.url == JS_UPLOAD){
+                    console.log("received map_reduce functions");
                     requester_funcs = require(temp_path);
                     add_user_func(ip, requester_funcs);
+                }
+                else if(request.url == JSON_UPLOAD){
+                    var text = fs.readFileSync(temp_path,'utf8');
+                    console.log("received json data");
+                    requester_data = JSON.parse(text);
+                    add_user_data(ip, requester_data);
                 }
             });
             return;
         }
 
-        //Get post data
+        //Get post data, determine type of post based on attributes
+        var body = '';
         request.on('data', function (data) {
             body += data;
         });
         request.on('end', function() {
-	        //Determine type of post based on attributes
             var post = qs.parse(body);
+            
+            /** CASE 2: redirect to volunteer page **/
             if(post.Volunteer != null){
 
                 response.writeHead(301, {
@@ -181,7 +194,7 @@ else {
                 response.end();
             }
 
-            //we have a volunteer task request
+            /** CASE 3: have a volunteer task request **/
             else if(post.task_req != null){
                 console.log('volunteer task request received');
 
@@ -208,7 +221,7 @@ else {
                 response.end(content);   
             }
 
-            //Case 2: Volunteer response
+            /** CASE 4: Volunteer output received **/
             else if(post.task_id != null){
                 console.log('volunteer data received');
                 var task_id = post.task_id;
@@ -231,11 +244,18 @@ else {
                 }
             }
 
-	        //Case 3: SAML Response
+	        //CASE 5: SAML Response
 	        else if(post.SAMLResponse != null) {
                 var status = saml.validate_response(post.SAMLResponse);
                 console.log(status);
                 //TODO redirect based on status code
+            }
+            //CASE 6: Job requester requesting job starting
+            else if(post.num_maps != null){
+                var num_maps = parseInt(post.num_maps);
+                var num_reds = parseInt(post.num_reduces);
+                submit_job(user_requests[ip], num_maps, num_reds);
+                delete user_requests[ip];
             }
         });
     }
@@ -274,10 +294,12 @@ function add_user_data(user_ip, data){
         user_requests[user_ip] = new structs.Task(user_ip);
     }
     user_requests[user_ip]['data'] = data;
+    /*
     if(user_requests[user_ip].is_complete()){
         submit_job(user_requests[user_ip]);
         delete user_requests[user_ip];
     }
+    */
 }
 /**
  * adds uploaded user func to user_reqs
@@ -288,16 +310,18 @@ function add_user_func(user_ip, func){
         user_requests[user_ip] = new structs.Task(user_ip);
     }
     user_requests[user_ip]['func'] = func;
+    /*
     if(user_requests[user_ip].is_complete()){
         submit_job(user_requests[user_ip]);
         delete user_requests[user_ip];
-    }    
+    } 
+    */   
 }
 
 /**
  * Submits a job with the specified map and reduce functions to the job server. 
  */
- function submit_job(task){
+ function submit_job(task, num_maps, num_reds){
     console.log("submitting job!");
     var funcs = task['func'];
     var data = task['data'];
@@ -305,17 +329,8 @@ function add_user_func(user_ip, func){
         throw "Missing map or reduce function. Are they named correctly?";
         //TODO send error message to user
     }
-    var job = new map_red.Job(funcs.map, funcs.reduce, data);
+    var job = new map_red.Job(funcs.map, funcs.reduce, data, num_maps, num_reds);
     jobs.enq(job);
-}
-
-/**
- * Helper function for retrieving the function name of func
- */
- function get_func_name(func){
-    var f_str = func.toString();
-    f_str = f_str.substring('function '.length);
-    return f_str.substring(0, f_str.indexOf('('));
 }
 
 /**
@@ -403,18 +418,7 @@ function main(){
     }
     
     check_jobs();
-
     //check_volunteers();
-
-    /*
-    while(!cur_job.is_complete()){
-        //do nothing, for now
-    //    setTimeout(cur_job.print_progress(), 300000);
-    }
-    
-    console.log("Final output");
-    console.log(cur_job.get_output());
-    */
 }
 
 
@@ -430,8 +434,7 @@ function check_jobs(){
     if(cur_job == null){
         if(jobs.size() > 0){
             cur_job = jobs.deq();
-            console.log('number of tasks: ' + update_volunteers() + 1);
-            cur_job.create_map_tasks(update_volunteers() + 1);
+            cur_job.create_map_tasks();
         }
     }
     else if(cur_job.is_complete()){

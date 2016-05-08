@@ -1,0 +1,27 @@
+<!-- The requester job start page -->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="start_job.js"></script>
+</head>
+
+There are currently TODO nodes available.
+
+<form action="/" method="POST">
+Number of Map Tasks:<br>
+<input type="text" id="num_maps" name="num_maps"><br>
+</form>
+
+<form action="/" method="POST">
+Number of Reduce Tasks:<br>
+<input type="text" id="num_reduces" name="num_reduces"><br>
+</form>
+
+<input type="button" value="Start Job" onclick="submit_forms()" />
+
+<body>
+<!-- Put progress here -->
+</body>
+
+</html>

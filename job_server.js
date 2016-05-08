@@ -63,10 +63,7 @@ else {
  */
  function request_handler(request, response){
 
-//    response.end('Hello world! Path hit: ' + request.url);
-
 if(request.method == 'GET'){
-
     console.log(request.url);
 
     var file_path = '.' + request.url;
@@ -138,15 +135,27 @@ if(request.method == 'GET'){
     else if(request.method == 'POST'){
         var body = '';
 
-        if(request.url == JSON_UPLOAD){
+        if(request.url.includes('_upload')){
             var form = new formidable.IncomingForm();
-
+            
             form.parse(request, function(err, fields, files) {
               response.writeHead(200, {'content-type': 'text/plain'});
               response.write('received upload:\n\n');
               response.end(util.inspect({fields: fields, files: files}));
-          });
+            });
 
+            form.on('end', function(fields, files){
+                var temp_path = this.openedFiles[0].path;
+
+                if(request.url == JSON_UPLOAD){
+                    var text = fs.readFileSync(temp_path,'utf8');
+                    //requester_data = JSON.parse(text);
+                    //console.log(requester_data);
+                }
+                else if(request.url == JS_UPLOAD){
+                    //requester_funcs = require(temp_path);
+                }
+            });
             return;
         }
 
@@ -243,7 +252,18 @@ if(request.method == 'GET'){
 var jobs = new structs.Queue(); //A queue of jobs managed by the job server
 var cur_job = null;
 
+//a dict of partial user requests
+var user_reqs = {};
+
 var avail_volunteers = {}; //tracks the number of available (idle) volunteers
+
+/**
+ * adds uploaded user data to user_reqs
+ */
+function add_user_data(data){
+    //TODO: add user dict data to user_req, then check whether the user dict is complete
+}
+
 
 /**
  * Submits a job with the specified map and reduce functions to the job server. TODOO
@@ -341,7 +361,7 @@ function main(){
         });
     }
     
-    check_volunteers();
+    //check_volunteers();
 
     /*
     while(!cur_job.is_complete()){
@@ -361,12 +381,6 @@ function check_volunteers(){
 }
 
 function test(){
-    /*
-    var t = new structs.Task('id3', function(){console.log('hi')}, 'dataaaaa');
-    console.log(t['id']);
-    console.log(t['func']);
-    console.log(t['data']);
-    */
     
     var data = [
     ['frase primera', 'primer trozo de informacion para procesado primer trozo'],

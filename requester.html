@@ -7,14 +7,20 @@
 </head>
 -->
 <body>
-
+    <!--
+    <form action="/upload" enctype="multipart/form-data" method="post">
+        <input type="text" name="title"><br>
+        <input type="file" name="upload" multiple="multiple"><br>
+        <input type="submit" value="Upload">
+    </form>
+    -->
     <form method="POST" action="/js_upload" enctype="multipart/form-data">
-        <input id="map_reduce_job" type="file" multiple="multiple" accept=".js"/>
+        <input id="map_reduce_job" type="file" name="js_upload" multiple="multiple" accept=".js"/>
         <input type="submit" value="Upload MapReduce File" />
     </form>
 
     <form method="POST" action="/json_upload" enctype="multipart/form-data">
-        <input id="data" type="file" multiple="multiple" accept=".json"/>
+        <input id="data" type="file" name="json_upload multiple="multiple" accept=".json"/>
         <input type="submit" value="Upload Data" />
     </form>
 

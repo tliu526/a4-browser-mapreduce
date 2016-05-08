@@ -45,5 +45,9 @@ module.exports = {
         this['id'] = id;
         this['func'] = func;
         this['data'] = data;
+
+        this.is_complete = function(){
+            return (this['id'] != undefined) && (this['func'] != undefined) && (this['data'] != undefined);
+        }
     }
 }

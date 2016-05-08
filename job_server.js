@@ -149,13 +149,18 @@ else {
             form.on('end', function(fields, files){
                 var temp_path = this.openedFiles[0].path;
 
+                var ip;
+                if(local){ ip = "120.0.0.1"; }
+                else { ip = request.headers['x-forwarded-for'][0]; }
+
                 if(request.url == JSON_UPLOAD){
                     var text = fs.readFileSync(temp_path,'utf8');
-                    //requester_data = JSON.parse(text);
-                    //console.log(requester_data);
+                    requester_data = JSON.parse(text);
+                    add_user_data(ip, requester_data);
                 }
                 else if(request.url == JS_UPLOAD){
-                    //requester_funcs = require(temp_path);
+                    requester_funcs = require(temp_path);
+                    add_user_func(ip, requester_funcs);
                 }
             });
             return;
@@ -186,11 +191,12 @@ else {
                     //NOTE, returns undefined when testing locally
                     add_volunteer(request.headers['x-forwarded-for']);
 
+                    /*
+                    TODOOOOOO
                     var token = new Date().getTime();
                     var expires = token + 60000000;
                     send_new_user(token,expires)
-
-                    //console.log(request.headers['x-forwarded-for']);
+                    */
                 }
 
                 response.writeHead(200, {
@@ -255,23 +261,52 @@ var jobs = new structs.Queue(); //A queue of jobs managed by the job server
 var cur_job = null;
 
 //a dict of partial user requests
-var user_reqs = {};
+var user_requests = {};
 
 var avail_volunteers = {}; //tracks the number of available (idle) volunteers
 
 /**
- * adds uploaded user data to user_reqs
+ * adds uploaded user data to user_reqs.
  */
-function add_user_data(data){
-    //TODO: add user dict data to user_req, then check whether the user dict is complete
+function add_user_data(user_ip, data){
+
+    if(!(user_ip in user_requests)){
+        user_requests[user_ip] = new structs.Task(user_ip);
+    }
+    user_requests[user_ip]['data'] = data;
+    if(user_requests[user_ip].is_complete()){
+        submit_job(user_requests[user_ip]);
+        delete user_requests[user_ip];
+    }
+}
+/**
+ * adds uploaded user func to user_reqs
+ * Note: func is an object carrying the map and reduce functions.
+ */
+function add_user_func(user_ip, func){
+    if(!(user_ip in user_requests)){
+        user_requests[user_ip] = new structs.Task(user_ip);
+    }
+    user_requests[user_ip]['func'] = func;
+    if(user_requests[user_ip].is_complete()){
+        submit_job(user_requests[user_ip]);
+        delete user_requests[user_ip];
+    }    
 }
 
-
 /**
- * Submits a job with the specified map and reduce functions to the job server. TODOO
+ * Submits a job with the specified map and reduce functions to the job server. 
  */
- function submit_job(map, reduce, data){
-    //TODO
+ function submit_job(task){
+    console.log("submitting job!");
+    var funcs = task['func'];
+    var data = task['data'];
+    if ((funcs.map == undefined) || (funcs.reduce == undefined)) {
+        throw "Missing map or reduce function. Are they named correctly?";
+        //TODO send error message to user
+    }
+    var job = new map_red.Job(funcs.map, funcs.reduce, data);
+    jobs.enq(job);
 }
 
 /**
@@ -284,10 +319,10 @@ function add_user_data(data){
 }
 
 /**
- * Assigns a task (if any are available) to a volunteer. Returns a JSON obje
+ * Assigns a task (if any are available) to a volunteer. Returns a JSON object
  */
  function process_volunteer_request(){
-    if(!cur_job.is_complete()){
+    if((cur_job != null) && !(cur_job.is_complete())){
         var task = cur_job.get_task();
         //need to stringify the array of arrays
         task['data'] = JSON.stringify(task['data']);
@@ -341,7 +376,11 @@ function add_user_data(data){
         }
     }
 
-    console.log("There are currently " + Object.keys(avail_volunteers).length + " volunteers available");
+
+    var num_vols = Object.keys(avail_volunteers).length;
+    console.log("There are currently " +  num_vols + " volunteers available");
+
+    return num_vols;
 }
 
 /**** MAIN ****/
@@ -363,6 +402,8 @@ function main(){
         });
     }
     
+    check_jobs();
+
     //check_volunteers();
 
     /*
@@ -381,6 +422,28 @@ function check_volunteers(){
     update_volunteers();
     setTimeout(check_volunteers, 3000);
 }
+/**
+ * looping function that checks job status and updates the current job appropriately.
+ */
+function check_jobs(){
+    console.log("checking jobs");
+    if(cur_job == null){
+        if(jobs.size() > 0){
+            cur_job = jobs.deq();
+            console.log('number of tasks: ' + update_volunteers() + 1);
+            cur_job.create_map_tasks(update_volunteers() + 1);
+        }
+    }
+    else if(cur_job.is_complete()){
+        if(jobs.size() > 0){
+            cur_job = jobs.deq();
+        }
+    }
+    else {
+        console.log(cur_job.print_progress());
+    }
+    setTimeout(check_jobs, 3000);
+}
 
 function test(){
     
@@ -396,6 +459,8 @@ function test(){
     var job = new map_red.Job(wc_map, wc_red, data);
     var num_tasks = job.create_map_tasks(6);
     console.log("The number of map tasks:" + num_tasks);
+    var str = JSON.stringify(data);
+    console.log(str);
     cur_job = job;
 }
 
@@ -421,5 +486,5 @@ function wc_red(k, l){
     return result;
 }
 
-test();
+//test();
 main();

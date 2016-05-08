@@ -11,8 +11,7 @@ var SignedXml = require('xml-crypto').SignedXml;
 var FileKeyInfo = require('xml-crypto').FileKeyInfo;
 var fs = require('fs');
 
-
-
+var idp_url = 'http://localhost:8890';
 
 module.exports = {
 
@@ -58,7 +57,7 @@ module.exports = {
 
 	    //Issuer element                                                   
 	    writer.startElement('saml:Issuer');
-	    writer.text('http://localhost:8890');
+	    writer.text(idp_url);
 	    writer.endElement();    
 
 	    //Start saml:Assertion element and write attributes
@@ -69,7 +68,7 @@ module.exports = {
 
 	    //Issuer
 	    writer.startElement('saml:Issuer');
-	    writer.text('http://localhost:8890');
+	    writer.text(idp_url);
 	    writer.endElement();
 
 	    //put signature here
@@ -152,6 +151,8 @@ module.exports = {
 		//Decode from base64
 		var samlResponse = new Buffer(samlResponseBase64,'base64').toString('utf8');
 
+		console.log(samlResponse);
+
 		//Check signature
 		if (module.exports.validate_signature(samlResponse)) {
 			console.log('Signature successfully verified');
@@ -200,9 +201,6 @@ module.exports = {
 
 	 	//Get DOM object
 	 	var samlResponseDom = new dom({ignoreWhiteSpace: true}).parseFromString(samlResponse);
-
-	 			console.log('here1');
-
 
 	    //Extract signature
 	    var signature = select(samlResponseDom,'//*[local-name(.)=\"Signature\" and namespace-uri(.)=\"http://www.w3.org/2000/09/xmldsig#\"]')[0];

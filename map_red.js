@@ -56,7 +56,7 @@
                 this.map_tasks.enq(t);
                 this.map_todo.push(map_id);
             }
-
+            this.num_maps = data_list.length;
             return data_list.length;
         };
 
@@ -75,7 +75,7 @@
                 this.red_tasks.enq(t);
                 this.red_todo.push(red_id);
             }
-
+            this.num_reds = data_list.length;
             return data_list.length;
         };
 
@@ -159,6 +159,27 @@
                 console.log("Percent reduce complete: " + (this.red_todo.length) / this.num_reds);
             }
         };
+
+        /**
+         * returns the map/reduce progress in a comma separated string
+         */
+        this.get_progress = function(){
+            var maps = 0;
+            if(this.map_todo.length > 0){
+                maps = ((this.num_maps - this.map_todo.length) / this.num_maps) * 100;
+            }
+            
+            var reds = 0;
+            if(this.red_todo.length > 0){
+                reds = ((this.num_reds - this.red_todo.length) / this.num_reds) * 100;
+            }
+
+            if(this.is_complete()){
+                maps = 100;
+                reds = 100;
+            }
+            return maps + ","+ reds;
+        }
 
         /**
          * Returns whether or not the MapReduce task is complete.

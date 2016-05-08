@@ -45,7 +45,7 @@ const JSON_UPLOAD = "/json_upload";
 const VOLUNTEER_JS = "/volunteer.js";
 
 const NO_TASK = "DONE"; //the xhr text when there are no outstanding tasks.
-
+const OUTPUT_NAME = "./output.json";
 var job_root_url = '';
 var idp_root_url = '';
 
@@ -89,6 +89,10 @@ else {
 
                 case '.ico':
                 content_type = 'image/x-icon';
+                break;
+
+                case '.json':
+                content_type = 'application/json';
                 break;
 
                 default:
@@ -256,6 +260,51 @@ else {
                 var num_reds = parseInt(post.num_reduces);
                 submit_job(user_requests[ip], num_maps, num_reds);
                 delete user_requests[ip];
+
+                var content = "Job started";
+
+                response.writeHead(200, {
+                    'Content-Type' : 'text/html',
+                    'Content-Length' : content.length,
+                    'Expires' : new Date().toUTCString(),
+                    'Access-Control-Allow-Origin' : '*'
+                });
+                response.end(content);
+            }
+
+            //CASE 7: Job requester requesting current job status
+            else if(post.job_status != null){
+                var content = "0,0";
+                if(cur_job != null){
+                    //if(!cur_job.is_complete()){
+                        content = cur_job.get_progress();
+
+                        response.writeHead(200, {
+                            'Content-Type' : 'text/html',
+                            'Content-Length' : content.length,
+                            'Expires' : new Date().toUTCString(),
+                            'Access-Control-Allow-Origin' : '*'
+                        });
+                        response.end(content);   
+                    //}
+                    /*
+                    else {
+                        
+                        var stat = fs.statSync(OUTPUT_NAME);
+                        var readStream = fs.createReadStream(OUTPUT_NAME);
+                        response.writeHead(200, {
+                            'Content-Type' : 'application/json',
+                            'Content-Length' : stat.size,
+                            'Expires' : new Date().toUTCString(),
+                            'Content-Disposition': 'attachment; filename='+OUTPUT_NAME,
+                            'Access-Control-Allow-Origin' : '*'
+                        });
+                        readStream.pipe(response);
+                        response.end();
+                       
+                    }
+                    */
+                }
             }
         });
     }
@@ -360,11 +409,26 @@ function add_user_func(user_ip, func){
     if(cur_job.is_complete()){
         console.log("Complete output:");
         console.log(cur_job.get_output());
+        write_output(OUTPUT_NAME);
         return NO_TASK;
     }
     else{
         return process_volunteer_request();
     }
+}
+/**
+ * Writes the current job's finished output to out_name.
+ */
+function write_output(out_name){
+    if(cur_job.is_complete()){
+        fs.writeFile(out_name, JSON.stringify(cur_job.get_output()), function(err){
+            if(err){
+                console.log(err);
+            }
+        });
+    }
+
+    console.log("file saved successfully");
 }
 
 /**

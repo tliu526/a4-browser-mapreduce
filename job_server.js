@@ -7,6 +7,7 @@
 
 //"Include" statements
 var http = require('http');
+http.post = require('http-post');
 var url = require('url');
 var qs = require('querystring');
 var structs = require('./structs');
@@ -18,6 +19,7 @@ var fs = require('fs');
 var path = require('path');
 var formidable = require('formidable');
 var util = require('util');
+
 
 //signature requirements
 var select = require('xml-crypto').xpath;
@@ -192,10 +194,20 @@ else {
             /** CASE 2: redirect to volunteer page **/
             if(post.Volunteer != null){
 
-                response.writeHead(301, {
-                    Location: job_root_url + VOLUNTEER_PATH
+                var token = new Date().getTime();
+                var expires = token + 86400000;
+                send_new_user(token,expires);
+
+                var html = fs.readFileSync('volunteer.html','utf8');
+                html = html.replace('Put token here',token);
+
+                response.writeHead(200, {
+                    'Content-Type' : content_type,
+                    'Content-Length' : html.length,
+                    'Expires' : new Date().toUTCString(),
+                    'Access-Control-Allow-Origin' : '*'
                 });
-                response.end();
+                response.end(html, 'utf-8');
             }
 
             /** CASE 3: have a volunteer task request **/
@@ -207,13 +219,6 @@ else {
                 if(content == NO_TASK){
                     //NOTE, returns undefined when testing locally
                     add_volunteer(request.headers['x-forwarded-for']);
-
-                    /*
-                    TODOOOOOO
-                    var token = new Date().getTime();
-                    var expires = token + 60000000;
-                    send_new_user(token,expires)
-                    */
                 }
 
                 response.writeHead(200, {
@@ -251,8 +256,34 @@ else {
 	        //CASE 5: SAML Response
 	        else if(post.SAMLResponse != null) {
                 var status = saml.validate_response(post.SAMLResponse);
-                console.log(status);
-                //TODO redirect based on status code
+                console.log(status);  
+                var redirectPage = '';
+                switch(status) {
+                    case 'INVALID SIGNATURE':
+                        redirectPage = job_root_url + '/invalid_signature.html';
+                        break;
+                    case 'INVALID IDP':
+                        redirectPage = job_root_url + '/invalid_idp.html';
+                        break; 
+                    case 'EXPIRED ASSERTION':
+                        redirectPage = job_root_url + '/expired_assertion.html';
+                        break;
+                    case 'NOT A RESOURCE VOLUNTEER':
+                        redirectPage = job_root_url + '/not_volunteer.html';
+                        break;
+                    case 'VALIDATED RESOURCE VOLUNTEER':
+                        redirectPage = job_root_url + '/requester';
+                        break;
+                    default:
+                        console.log('error');
+                }
+                console.log(redirectPage);
+
+               response.writeHead(301, {
+                    Location : redirectPage
+               });
+               response.end();
+           
             }
             //CASE 6: Job requester requesting job starting
             else if(post.num_maps != null){
@@ -314,13 +345,12 @@ else {
  * Send a new user's token to the IDP to allow for future authentication
  */
  function send_new_user(newUser,expires) {
-    var url = idp_root_url;
-    var request = createCORSRequest('POST',url);
-    if (request) {
-       var data = 'newUser=' + newUser + '&expires=' + expires;
-       request.send(data);
-   }
-
+    http.post(idp_root_url,{ newUser: newUser, expires: expires}, function(res) {
+        //response.setEncoding('utf8');
+        res.on('data',function(chunk) {
+            //console.log(chunk);
+        });
+    });
 }
 
 /**** JOB MANAGEMENT FUNCTIONS AND VARS ****/

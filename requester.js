@@ -5,7 +5,14 @@ For the requester page to submit map_reduce functions.
 
 function submit_forms(){
 
-    document.getElementById("data").submit();
+    //document.getElementById("data").submit();
+
+    var data_form = document.getElementById("data_reduce");
+    var files = document.getElementById("data_select").files;
+    var formData = new FormData();
+    formData.append("data_upload", files[0], files[0].name);
+    var data_xhr = createCORSRequest("POST", "/data_upload");
+    data_xhr.send(formData);
 
     var mpr_form = document.getElementById("map_reduce");
     var files = document.getElementById("mpr_select").files;
@@ -14,8 +21,8 @@ function submit_forms(){
     var xhr = createCORSRequest("POST", "/js_upload");
     xhr.send(formData);
 
-    xhr.onreadystatechange = function() {
-            if (xhr.readyState == XMLHttpRequest.DONE) {
+    data_xhr.onreadystatechange = function() {
+            if (data_xhr.readyState == XMLHttpRequest.DONE) {
 
                 window.location.href = "/requester/start_job";
             }

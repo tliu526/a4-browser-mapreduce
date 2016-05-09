@@ -67,6 +67,7 @@
          * Returns the number of tasks submitted to queue.
          */
         this.create_red_tasks = function(data){
+            console.log("creating reduce tasks");
             var data_list = structs.chunk(data, this.num_r_tasks);
 
             for(var i = 0; i < data_list.length; i++){

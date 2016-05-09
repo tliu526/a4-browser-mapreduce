@@ -543,6 +543,7 @@ function check_jobs(){
     else if(cur_job.is_complete()){
         if(jobs.size() > 0){
             cur_job = jobs.deq();
+            cur_job.create_map_tasks();
         }
     }
     else {
@@ -593,4 +594,4 @@ function wc_red(k, l){
 }
 
 //test();
-main();
+main(); 

@@ -151,8 +151,6 @@ module.exports = {
 		//Decode from base64
 		var samlResponse = new Buffer(samlResponseBase64,'base64').toString('utf8');
 
-		console.log(samlResponse);
-
 		//Check signature
 		if (module.exports.validate_signature(samlResponse)) {
 			console.log('Signature successfully verified');
@@ -190,7 +188,7 @@ module.exports = {
 			return 'VALIDATED RESOURCE VOLUNTEER';
 		} else {
 			console.log('SAML Response has not confirmed that user is a resource volunteer. Access will be denied');
-			return 'NOT A RESOURCE VOLUTEER';
+			return 'NOT A RESOURCE VOLUNTEER';
 		}
 	},
 

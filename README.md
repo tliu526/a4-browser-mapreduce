@@ -21,3 +21,4 @@ npm packages currently installed:
 - xpath
 - xmldom
 - formidable (for parsing file uploads)
+- http

@@ -41,7 +41,7 @@ const LIFETIME = 4000;
 const INDEX = "./job_server_login.html";
 const VOLUNTEER_PATH = "/volunteer";
 const JS_UPLOAD = "/js_upload";
-const JSON_UPLOAD = "/json_upload";
+const DATA_UPLOAD = "/data_upload";
 const VOLUNTEER_JS = "/volunteer.js";
 
 const NO_TASK = "DONE"; //the xhr text when there are no outstanding tasks.
@@ -93,6 +93,10 @@ else {
 
                 case '.json':
                 content_type = 'application/json';
+                break;
+
+                case '.txt':
+                content_type = 'text/plain';
                 break;
 
                 default:
@@ -164,14 +168,16 @@ else {
 
             form.on('end', function(fields, files){
                 var temp_path = this.openedFiles[0].path;
-                
+                var ext = path.extname(temp_path);
+                console.log("file extension: " + ext);
+                console.log("type?: " + this.openedFiles[0].type);
                 if(request.url == JS_UPLOAD){
 
                     console.log("received map_reduce functions");
                     requester_funcs = require(temp_path);
                     add_user_func(ip, requester_funcs);
                 }
-                else if(request.url == JSON_UPLOAD){
+                else if(request.url == DATA_UPLOAD){
                     var text = fs.readFileSync(temp_path,'utf8');
                     console.log("received json data");
                     requester_data = JSON.parse(text);
@@ -230,7 +236,10 @@ else {
                 console.log('volunteer data received');
                 var task_id = post.task_id;
                 var data = post.result;
+                console.log("incoming data:");
+                console.log(data);
                 var data = JSON.parse(data);
+                
                 var content = process_volunteer_output(task_id, data);
 
                 //continue servicing outstanding jobs

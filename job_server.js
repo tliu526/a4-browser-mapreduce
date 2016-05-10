@@ -428,8 +428,13 @@ function add_user_func(user_ip, func){
     if((cur_job != null) && !(cur_job.is_complete())){
         var task = cur_job.get_task();
         //need to stringify the array of arrays
-        task['data'] = JSON.stringify(task['data']);
-        return JSON.stringify(task);
+        if(task != null){
+            task['data'] = JSON.stringify(task['data']);
+            return JSON.stringify(task);
+        }
+        else {
+            return NO_TASK;
+        }
     }
     else {
         return NO_TASK;

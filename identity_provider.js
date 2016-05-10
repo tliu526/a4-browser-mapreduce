@@ -8,7 +8,7 @@
 var http = require('http');
 var XMLWriter = require('xml-writer');
 var qs = require('querystring');
-
+var path = require('path');
 var fs = require('fs');
 var file = 'users.db';
 var exists = fs.existsSync(file);
@@ -41,7 +41,58 @@ else {
  * Handle incoming requests 
  */
  function request_handler(request,response) {
-    if (request.method == 'POST') {
+
+  if(request.method == 'GET'){
+
+    var file_path = '.' + request.url;
+
+    var ext = path.extname(file_path);
+    var content_type = '';
+    switch(ext){
+      case '.js':
+      content_type = 'text/javascript';
+      break;
+
+      case '.html':
+      content_type = 'text/html';
+      break;
+
+      case '.ico':
+      content_type = 'image/x-icon';
+      break;
+
+      case '.json':
+      content_type = 'application/json';
+      break;
+
+      case '.txt':
+      content_type = 'text/plain';
+      break;
+
+      default:
+      content_type = 'text/html';
+      file_path = file_path + '.html';
+    }
+
+    fs.readFile(file_path, function(error, content) {
+     if (error) {
+      response.writeHead(500);
+      response.end('Sorry, check with the site adminstrator for error: '+error.code+' ..\n');
+      response.end(); 
+    }
+    else {
+      response.writeHead(200, 
+        {'Content-Type' : content_type,
+        'Content-Length' : content.length,
+        'Expires' : new Date().toUTCString(),
+        'Access-Control-Allow-Origin' : '*'
+      });
+      response.end(content, 'utf-8');
+    }
+  });
+  }
+
+  if (request.method == 'POST') {
 
 	//Convert POST data into an object
 	var data = '';

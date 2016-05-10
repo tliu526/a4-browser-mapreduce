@@ -93,6 +93,10 @@ else {
                 content_type = 'image/x-icon';
                 break;
 
+                case '.png':
+                content_type = 'image/png';
+                break;
+
                 case '.json':
                 content_type = 'application/json';
                 break;

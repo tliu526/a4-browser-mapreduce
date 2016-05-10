@@ -69,6 +69,11 @@ else {
       content_type = 'text/plain';
       break;
 
+      case '.png':
+      content_type = 'image/png';
+      break;
+
+
       default:
       content_type = 'text/html';
       file_path = file_path + '.html';

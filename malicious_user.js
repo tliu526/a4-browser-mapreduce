@@ -21,7 +21,7 @@ const IDP_URL = "http://idp-cs339.rhcloud.com";
 var job_root_url = '';
 var idp_root_url = '';
 
-var local = true;
+var local = false;
 
 if(local){
     job_root_url = "http://localhost:" + JOB_PORT;
@@ -136,7 +136,7 @@ function main() {
 
 	var server = http.createServer(request_handler);
 	server.listen(MALICIOUS_PORT, function() {
-		console.log('Navigate to ' + malicious_url + ' to hack into the job server');
+		console.log('Navigate to ' + malicious_root_url + ' to hack into the job server');
 	});
 }
 main();

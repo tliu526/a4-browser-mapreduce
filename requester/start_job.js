@@ -93,5 +93,5 @@ function check_job_status(){
     console.log("checking job status");
     //TODO check for job completion too
     send_post(JOB_STATUS);
-    setTimeout(check_job_status, 3000);
+    setTimeout(check_job_status, 1000);
 }

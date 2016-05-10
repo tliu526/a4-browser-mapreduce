@@ -169,14 +169,15 @@
             if(this.map_todo.length > 0){
                 maps = ((this.num_maps - this.map_todo.length) / this.num_maps) * 100;
             }
+            else if(this.num_maps > 0){
+                maps = 100;
+            }
             
             var reds = 0;
             if(this.red_todo.length > 0){
                 reds = ((this.num_reds - this.red_todo.length) / this.num_reds) * 100;
             }
-
-            if(this.is_complete()){
-                maps = 100;
+            else if(this.num_reds > 0){
                 reds = 100;
             }
             return maps + ","+ reds;

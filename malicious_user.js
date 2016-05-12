@@ -21,7 +21,7 @@ const IDP_URL = "http://idp-cs339.rhcloud.com";
 var job_root_url = '';
 var idp_root_url = '';
 
-var local = false;
+var local = true;
 
 if(local){
     job_root_url = "http://localhost:" + JOB_PORT;

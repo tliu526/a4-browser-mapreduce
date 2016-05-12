@@ -165,11 +165,6 @@ else {
                     Location: job_root_url + 'requester/start_job'
                 });
                 response.end();
-                /*
-                response.writeHead(200, {'content-type': 'text/plain'});
-                response.write('received upload:\n\n');
-                response.end(util.inspect({fields: fields, files: files}));
-                */
             });
 
             form.on('end', function(fields, files){
@@ -386,12 +381,6 @@ function add_user_data(user_ip, data){
         user_requests[user_ip] = new structs.Task(user_ip);
     }
     user_requests[user_ip]['data'] = data;
-    /*
-    if(user_requests[user_ip].is_complete()){
-        submit_job(user_requests[user_ip]);
-        delete user_requests[user_ip];
-    }
-    */
 }
 /**
  * adds uploaded user func to user_reqs
@@ -402,23 +391,16 @@ function add_user_func(user_ip, func){
         user_requests[user_ip] = new structs.Task(user_ip);
     }
     user_requests[user_ip]['func'] = func;
-    /*
-    if(user_requests[user_ip].is_complete()){
-        submit_job(user_requests[user_ip]);
-        delete user_requests[user_ip];
-    } 
-    */   
 }
 
 /**
  * Submits a job with the specified map and reduce functions to the job server. 
  */
- function submit_job(task, num_maps, num_reds){
+function submit_job(task, num_maps, num_reds){
     console.log("submitting job!");
     var funcs = task['func'];
     var data = task['data'];
     if ((funcs.map == undefined) || (funcs.reduce == undefined)) {
-        throw "Missing map or reduce function. Are they named correctly?";
         //TODO send error message to user
     }
     var job = new map_red.Job(funcs.map, funcs.reduce, data, num_maps, num_reds);
@@ -489,6 +471,7 @@ function write_output(out_name){
         avail_volunteers[ip] = Date.now();
     }
 }
+
 /**
  * Checks avail_volunteers for "stale" volunteer nodes
  */

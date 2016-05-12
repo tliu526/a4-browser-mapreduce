@@ -16,11 +16,13 @@
      * reduce: the reduce function as specified by the user
      */
     Job: function(map, reduce, data, num_m_tasks, num_r_tasks){
+        const JOBS_DB = "jobs.db";
         var structs = require('./structs');
+        var sqlite3 = require('sqlite3').verbose();
 
         /**** INITIALIZATION ****/
 
-        this.id = new Date().getTime(); //id is milliseconds, TODO make more robust?
+        this.id = new Date().getTime(); //id is current milliseconds
         this.map_tasks = new structs.Queue();
         this.red_tasks = new structs.Queue();
         this.complete = false;
@@ -35,6 +37,7 @@
         this.num_reds = 0;
 
         //Stores the interMIDeate k2,v2 pairs
+        //TODO write intermediate output to disk?
         this.mid_output = [];
 
         //Stores the FINal v2 values.
@@ -48,18 +51,42 @@
          * Returns the number of tasks submitted to queue.
          */
         this.create_map_tasks = function(){
+
             var data_list = structs.chunk(data, this.num_m_tasks);
 
             for(var i = 0; i < data_list.length; i++){
                 var map_id = 'm' + i;
-                var t = new structs.Task(map_id, map.toString(), data_list[i]);
+                var map_str = map.toString();
+                var t = new structs.Task(map_id, map_str, data_list[i]);
+                this.insert_task(t);
                 this.map_tasks.enq(t);
                 this.map_todo.push(map_id);
             }
+
+
             this.num_maps = data_list.length;
             return data_list.length;
         };
 
+        /**
+         * Inserts task into the jobs.db
+         */
+        this.insert_task = function(task){
+            var db = new sqlite3.Database(JOBS_DB);
+            
+            var sql_stmt = "INSERT INTO TASKS VALUES (?,?,?,NULL)";
+            var id = this.id + task['id'];
+            var func = structs.escape_sql_str(task['func']);
+            var data = structs.escape_sql_str(JSON.stringify(task['data']));
+            console.log(sql_stmt);
+            db.run(sql_stmt, id, func, data, function(err){
+                if(err != null){
+                    console.log("An error occurred when adding a task");
+                }
+            });
+            
+            db.close();
+        }
 
         /**
          * splits up the data into separate tasks pushes them onto the red_tasks queue.
@@ -67,12 +94,12 @@
          * Returns the number of tasks submitted to queue.
          */
         this.create_red_tasks = function(data){
-            console.log("creating reduce tasks");
             var data_list = structs.chunk(data, this.num_r_tasks);
 
             for(var i = 0; i < data_list.length; i++){
                 var red_id = 'r' + i;
                 var t = new structs.Task(red_id, reduce.toString(), data_list[i]);
+                this.insert_task(t);
                 this.red_tasks.enq(t);
                 this.red_todo.push(red_id);
             }
@@ -83,7 +110,6 @@
         /**
          * submission of results. If all map tasks are complete, process
          * and create reduce tasks.
-         * TODO how do we callback in order for job_server to specify num_chunks?
          */
         this.submit_output = function(id, results){
             //TODO worries about submitting out of order?

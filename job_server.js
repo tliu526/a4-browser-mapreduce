@@ -240,10 +240,7 @@ else {
                 console.log('volunteer data received');
                 var task_id = post.task_id;
                 var data = post.result;
-                console.log("incoming data:");
-                console.log(data);
                 var data = JSON.parse(data);
-                
                 var content = process_volunteer_output(task_id, data);
 
                 //continue servicing outstanding jobs

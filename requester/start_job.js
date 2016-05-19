@@ -9,6 +9,8 @@ var cur_red = -1;
 
 var JOB_STATUS = "job_status=true"; //the POST data for a job_status request
 
+var job_id = -1;
+
 /**
 Combines the the two form fields and sends as a single post request
 */
@@ -53,6 +55,7 @@ function send_post(message){
                 var response = xmlhttp.responseText.split(",");
                 var map_percent = parseInt(response[0]);
                 var red_percent = parseInt(response[1]);
+                job_id = parseInt(response[2]);
                 if(map_percent == 100 && red_percent == 100){
                     var download_button = document.getElementById("download");
                     download_button.disabled = false;
@@ -94,4 +97,14 @@ function check_job_status(){
     //TODO check for job completion too
     send_post(JOB_STATUS);
     setTimeout(check_job_status, 1000);
+}
+
+
+/**
+* Downloads output from a job
+*/
+function download_output(job_id) {
+    var downloadPost = createCORSRequest('POST','/');
+    var body = 'job_id=' + job_id;
+    downloadPost.send(body);
 }

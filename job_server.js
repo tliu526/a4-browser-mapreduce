@@ -19,7 +19,9 @@ var fs = require('fs');
 var path = require('path');
 var formidable = require('formidable');
 var util = require('util');
-
+var JOBS_DB = 'jobs.db';
+var exists = fs.existsSync(JOBS_DB);
+var sqlite3 = require('sqlite3').verbose();
 
 //signature requirements
 var select = require('xml-crypto').xpath;
@@ -310,7 +312,7 @@ else {
 
             //CASE 7: Job requester requesting current job status
             else if(post.job_status != null){
-                var content = "0,0";
+                var content = "0,0,0";
                 if(cur_job != null){
                     //if(!cur_job.is_complete()){
                         content = cur_job.get_progress();
@@ -342,6 +344,13 @@ else {
                     */
                 }
             }
+
+            else if(post.job_id != null) {
+                var job_id = post.job_id;
+                download_output(job_id);
+
+            }
+
         });
     }
 }
@@ -447,15 +456,18 @@ function submit_job(task, num_maps, num_reds){
  * Writes the current job's finished output to out_name.
  */
 function write_output(out_name){
-    if(cur_job.is_complete()){
-        fs.writeFile(out_name, JSON.stringify(cur_job.get_output()), function(err){
-            if(err){
-                console.log(err);
+    if (cur_job.is_complete()) {
+        var db = new sqlite3.Database(JOBS_DB);
+        var stmt = 'INSERT INTO JOBS VALUES(?, ?, ?);';  
+        db.run(stmt,cur_job.id,true,cur_job.get_output(),function(err) {
+            if (err != null) {
+                console.log('An error occured while subitting job output');
+            } else {
+                console.log('Saved job output for job ' + cur_job.id);
             }
+            db.close();
         });
     }
-
-    console.log("file saved successfully");
 }
 
 /**
@@ -488,6 +500,22 @@ function write_output(out_name){
     console.log("There are currently " +  num_vols + " volunteers available");
 
     return num_vols;
+}
+
+
+function download_output(jobId) {
+    var db = new sqlite3.Database(JOBS_DB);
+    var stmt = 'SELECT OUTPUT FROM JOBS WHERE ID = ?';
+    db.get(stmt,jobId,function(err,row) {
+        if (err != null) {
+            console.log('Error downloading output for job ' + jobId);
+        } else {
+            var text = row.OUTPUT;
+            var output_window = window.open("","OutputWindow");
+            output_window.document.write("<p>" + text + "</p>");
+        }
+    });
+    db.close();
 }
 
 /**** MAIN ****/

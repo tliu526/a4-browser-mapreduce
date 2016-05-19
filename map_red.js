@@ -73,7 +73,7 @@
          */
         this.insert_job = function(){
             var db = new sqlite3.Database(JOBS_DB);
-            val sql_stmt = "INSERT INTO JOBS VALUES(?, FALSE, NULL)";
+            var sql_stmt = "INSERT INTO JOBS VALUES(?, FALSE, NULL)";
             db.run(sql_stmt, this.id, function(err){
                 if(err != null){
                     console.log("An error occurred when adding a job");
@@ -95,9 +95,9 @@
             db.run(sql_stmt, id, func, data, function(err){
                 if(err != null){
                     console.log("An error occurred when adding a task");
+                    console.log(err.message);
                 }
             });
-            
             db.close();
         }
 
@@ -219,7 +219,7 @@
             else if(this.num_reds > 0){
                 reds = 100;
             }
-            return maps + ","+ reds;
+            return maps + "," + reds + "," + this.id;
         }
 
         /**

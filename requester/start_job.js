@@ -109,6 +109,7 @@ function download_output() {
 
     downloadPost.onreadystatechange = function() {
             if (downloadPost.readyState == XMLHttpRequest.DONE) {
+                //TODO actually open window/download the file
                 console.log(downloadPost.responseText);
             }
     };

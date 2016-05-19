@@ -67,6 +67,20 @@
             this.num_maps = data_list.length;
             return data_list.length;
         };
+        
+        /**
+         * Inserts this job into jobs.db 
+         */
+        this.insert_job = function(){
+            var db = new sqlite3.Database(JOBS_DB);
+            val sql_stmt = "INSERT INTO JOBS VALUES(?, FALSE, NULL)";
+            db.run(sql_stmt, this.id, function(err){
+                if(err != null){
+                    console.log("An error occurred when adding a job");
+                }
+            });  
+            db.close();        
+        }
 
         /**
          * Inserts task into the jobs.db
@@ -78,7 +92,6 @@
             var id = this.id + task['id'];
             var func = structs.escape_sql_str(task['func']);
             var data = structs.escape_sql_str(JSON.stringify(task['data']));
-            console.log(sql_stmt);
             db.run(sql_stmt, id, func, data, function(err){
                 if(err != null){
                     console.log("An error occurred when adding a task");

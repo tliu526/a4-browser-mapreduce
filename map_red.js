@@ -22,7 +22,8 @@
 
         /**** INITIALIZATION ****/
 
-        this.id = new Date().getTime(); //id is current milliseconds
+        var time = new Date().getTime(); //id is current milliseconds
+        this.id = 'job' + time.toString();
         this.map_tasks = new structs.Queue();
         this.red_tasks = new structs.Queue();
         this.complete = false;
@@ -73,10 +74,12 @@
          */
         this.insert_job = function(){
             var db = new sqlite3.Database(JOBS_DB);
-            var sql_stmt = "INSERT INTO JOBS VALUES(?, FALSE, NULL)";
+            var sql_stmt = "INSERT INTO JOBS VALUES(?, \'FALSE\', NULL);";
+            console.log('Inserting a job into database. Id: ' + this.id);
             db.run(sql_stmt, this.id, function(err){
                 if(err != null){
                     console.log("An error occurred when adding a job");
+                    console.log(err.message);
                 }
             });  
             db.close();        
@@ -88,7 +91,7 @@
         this.insert_task = function(task){
             var db = new sqlite3.Database(JOBS_DB);
             
-            var sql_stmt = "INSERT INTO TASKS VALUES (?,?,?,NULL)";
+            var sql_stmt = "INSERT INTO TASKS VALUES (?,?,?,NULL);";
             var id = this.id + task['id'];
             var func = structs.escape_sql_str(task['func']);
             var data = structs.escape_sql_str(JSON.stringify(task['data']));

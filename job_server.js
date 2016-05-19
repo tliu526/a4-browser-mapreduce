@@ -346,8 +346,7 @@ else {
             }
 
             else if(post.job_id != null) {
-                var job_id = post.job_id;
-                download_output(job_id);
+                download_output(post.job_id);
 
             }
 
@@ -410,6 +409,7 @@ function submit_job(task, num_maps, num_reds){
         //TODO send error message to user
     }
     var job = new map_red.Job(funcs.map, funcs.reduce, data, num_maps, num_reds);
+    job.insert_job();
     jobs.enq(job);
 }
 
@@ -444,7 +444,6 @@ function submit_job(task, num_maps, num_reds){
 
     if(cur_job.is_complete()){
         console.log("Complete output:");
-        console.log(cur_job.get_output());
         write_output(OUTPUT_NAME);
         return NO_TASK;
     }
@@ -458,15 +457,15 @@ function submit_job(task, num_maps, num_reds){
 function write_output(out_name){
     if (cur_job.is_complete()) {
         var db = new sqlite3.Database(JOBS_DB);
-        var stmt = 'INSERT INTO JOBS VALUES(?, ?, ?);';  
-        db.run(stmt,cur_job.id,true,cur_job.get_output(),function(err) {
+        var stmt = 'UPDATE JOBS SET ISCOMPLETE = \'TRUE\', OUTPUT = ? WHERE ID = ?;';  
+        db.run(stmt,cur_job.get_output(),cur_job.id,function(err) {
             if (err != null) {
-                console.log('An error occured while subitting job output');
+                console.log('An error occured while submitting job output');
             } else {
                 console.log('Saved job output for job ' + cur_job.id);
-            }
-            db.close();
+            }   
         });
+        db.close();
     }
 }
 

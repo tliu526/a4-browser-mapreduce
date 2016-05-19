@@ -36,8 +36,6 @@ function submit_forms(){
 
     xhr.send(data);
 
-
-
 }
 
 
@@ -56,8 +54,11 @@ function send_post(message){
                 var map_percent = parseInt(response[0]);
                 var red_percent = parseInt(response[1]);
                 job_id = response[2];
-                if(map_percent == 100 && red_percent == 100){
+                var submitted = response[3];
+
+                if(map_percent == 100 && red_percent == 100 && submitted){
                     var download_button = document.getElementById("download");
+                    console.log('enabling button');
                     download_button.disabled = false;
                 }
 
@@ -110,7 +111,12 @@ function download_output() {
     downloadPost.onreadystatechange = function() {
             if (downloadPost.readyState == XMLHttpRequest.DONE) {
                 //TODO actually open window/download the file
-                console.log(downloadPost.responseText);
+                var output = downloadPost.responseText;
+                var outputWindow = window.open("","OutputWindow");
+                //while (outputWindow.readyState != 'complete') {}
+                outputWindow.document.title = "Output";
+                outputWindow.document.write("<p>" + output + "</p>");
+                //console.log(downloadPost.responseText);
             }
     };
 

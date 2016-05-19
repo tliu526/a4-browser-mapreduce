@@ -27,6 +27,7 @@
         this.map_tasks = new structs.Queue();
         this.red_tasks = new structs.Queue();
         this.complete = false;
+        this.submitted = false;
 
         this.num_m_tasks = num_m_tasks;
         this.num_r_tasks = num_r_tasks;
@@ -222,7 +223,7 @@
             else if(this.num_reds > 0){
                 reds = 100;
             }
-            return maps + "," + reds + "," + this.id;
+            return maps + "," + reds + "," + this.id + "," + this.submitted;
         }
 
         /**

@@ -326,11 +326,11 @@ else {
 
             //CASE 7: Job requester requesting current job status
             else if(post.job_status != null){
-                var content = "0,0,0";
+                var content = "0,0,0,false";
                 if(cur_job != null){
                     //if(!cur_job.is_complete()){
                         content = cur_job.get_progress();
-
+                        console.log('Job status: ' + content);
                         response.writeHead(200, {
                             'Content-Type' : 'text/html',
                             'Content-Length' : content.length,
@@ -359,10 +359,9 @@ else {
                 }
             }
 
+            //CASE 8: Job requester requesting job output
             else if(post.job_id != null) {
                 download_output(post.job_id, function(content){
-                    console.log("Content:");
-                    console.log(content);
                     response.writeHead(200, {
                         'Content-Type' : 'text/html',
                         'Content-Length' : content.length,
@@ -475,7 +474,6 @@ function submit_job(task, num_maps, num_reds){
     cur_job.submit_output(task_id, data);
 
     if(cur_job.is_complete()){
-        console.log("Complete output:");
         write_output(OUTPUT_NAME);
         return NO_TASK;
     }
@@ -494,11 +492,13 @@ function write_output(out_name){
         db.run(stmt, data, cur_job.id,function(err) {
             if (err != null) {
                 console.log('An error occured while submitting job output');
+                console.log(err.message);
             } else {
                 console.log('Saved job output for job ' + cur_job.id);
+                cur_job.submitted = true;
             }   
-        });
-        db.close();
+            db.close();
+        });      
     }
 }
 
@@ -543,17 +543,15 @@ function download_output(jobId, callback) {
             console.log('Error downloading output for job ' + jobId);
         } else {
             output = row.OUTPUT;
-        }
-    });
-    db.close(function(err){
-        if(err != null){
-            console.log('error closing db');
-        }
-        else{
             callback(output);
         }
-
+        db.close(function(err){
+            if(err != null){
+                console.log('error closing db');
+            }
+        });
     });
+  
 }
 
 /**** MAIN ****/

@@ -360,8 +360,17 @@ else {
             }
 
             else if(post.job_id != null) {
-                download_output(post.job_id);
-
+                download_output(post.job_id, function(content){
+                    console.log("Content:");
+                    console.log(content);
+                    response.writeHead(200, {
+                        'Content-Type' : 'text/html',
+                        'Content-Length' : content.length,
+                        'Expires' : new Date().toUTCString(),
+                        'Access-Control-Allow-Origin' : '*'
+                    });
+                    response.end(content);   
+                });
             }
 
         });
@@ -480,8 +489,9 @@ function submit_job(task, num_maps, num_reds){
 function write_output(out_name){
     if (cur_job.is_complete()) {
         var db = new sqlite3.Database(JOBS_DB);
-        var stmt = 'UPDATE JOBS SET ISCOMPLETE = \'TRUE\', OUTPUT = ? WHERE ID = ?;';  
-        db.run(stmt,cur_job.get_output(),cur_job.id,function(err) {
+        var stmt = 'UPDATE JOBS SET ISCOMPLETE = \'TRUE\', OUTPUT = ? WHERE ID = ?;';
+        var data = structs.escape_sql_str(JSON.stringify(cur_job.get_output()));  
+        db.run(stmt, data, cur_job.id,function(err) {
             if (err != null) {
                 console.log('An error occured while submitting job output');
             } else {
@@ -524,20 +534,26 @@ function write_output(out_name){
     return num_vols;
 }
 
-
-function download_output(jobId) {
+function download_output(jobId, callback) {
     var db = new sqlite3.Database(JOBS_DB);
     var stmt = 'SELECT OUTPUT FROM JOBS WHERE ID = ?';
+    var output = 'nothing';
     db.get(stmt,jobId,function(err,row) {
         if (err != null) {
             console.log('Error downloading output for job ' + jobId);
         } else {
-            var text = row.OUTPUT;
-            var output_window = window.open("","OutputWindow");
-            output_window.document.write("<p>" + text + "</p>");
+            output = row.OUTPUT;
         }
     });
-    db.close();
+    db.close(function(err){
+        if(err != null){
+            console.log('error closing db');
+        }
+        else{
+            callback(output);
+        }
+
+    });
 }
 
 /**** MAIN ****/

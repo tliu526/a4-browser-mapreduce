@@ -106,5 +106,12 @@ function check_job_status(){
 function download_output() {
     var downloadPost = createCORSRequest('POST','/');
     var body = 'job_id=' + job_id;
+
+    downloadPost.onreadystatechange = function() {
+            if (downloadPost.readyState == XMLHttpRequest.DONE) {
+                console.log(downloadPost.responseText);
+            }
+    };
+
     downloadPost.send(body);
 }

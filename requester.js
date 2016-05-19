@@ -10,7 +10,11 @@ function submit_forms(){
     var data_form = document.getElementById("data_reduce");
     var files = document.getElementById("data_select").files;
     var formData = new FormData();
-    formData.append("data_upload", files[0], files[0].name);
+
+    for(var i = 0; i < files.length; i++){
+        formData.append("data_upload", files[i], files[i].name);
+    }
+    
     var data_xhr = createCORSRequest("POST", "/data_upload");
     data_xhr.send(formData);
 

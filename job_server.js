@@ -160,7 +160,7 @@ else {
         /** CASE 1: If there is uploaded data incoming **/
         if(request.url.includes('_upload')){
             var form = new formidable.IncomingForm();
-            
+            form.keepExtensions = true;
             form.parse(request, function(err, fields, files) {
 
                 response.writeHead(301, {
@@ -170,21 +170,35 @@ else {
             });
 
             form.on('end', function(fields, files){
-                var temp_path = this.openedFiles[0].path;
-                var ext = path.extname(temp_path);
-                console.log("file extension: " + ext);
-                console.log("type?: " + this.openedFiles[0].type);
-                if(request.url == JS_UPLOAD){
 
-                    console.log("received map_reduce functions");
-                    requester_funcs = require(temp_path);
-                    add_user_func(ip, requester_funcs);
-                }
-                else if(request.url == DATA_UPLOAD){
-                    var text = fs.readFileSync(temp_path,'utf8');
-                    console.log("received json data");
-                    requester_data = JSON.parse(text);
-                    add_user_data(ip, requester_data);
+                for(var i = 0; i < this.openedFiles.length; i++){
+                    //console.log(this.openedFiles[i].path);
+                    var file = this.openedFiles[i];
+                    var temp_path = file.path;
+                    var ext = path.extname(temp_path);
+                    console.log("file extension: " + ext);
+                    console.log("type?: " + file.type);
+                    
+                    if(request.url == JS_UPLOAD){
+
+                        console.log("received map_reduce functions");
+                        requester_funcs = require(temp_path);
+                        add_user_func(ip, requester_funcs);
+                    }
+                    else if(request.url == DATA_UPLOAD){
+                        var text = fs.readFileSync(temp_path,'utf8');
+                        console.log("received data");
+                        switch(ext){
+                            case '.json':
+                            requester_data = JSON.parse(text);
+                            add_user_json_data(ip, requester_data);
+                            break;
+
+                            case '.txt':
+                            add_user_txt_data(ip, file.name, text);
+                            break;
+                        }
+                    }
                 }
             });
             return;
@@ -379,15 +393,24 @@ var user_requests = {};
 var avail_volunteers = {}; //tracks the number of available (idle) volunteers
 
 /**
- * adds uploaded user data to user_reqs.
+ * adds uploaded user json data to user_reqs.
  */
-function add_user_data(user_ip, data){
+function add_user_json_data(user_ip, data){
 
     if(!(user_ip in user_requests)){
         user_requests[user_ip] = new structs.Task(user_ip);
     }
     user_requests[user_ip]['data'] = data;
 }
+
+/**
+ * Adds uploaded user txt data to user_reqs. Note that txt files will be read in
+ * as an entry in data as a [filename, text] tuple. 
+ */
+function add_user_txt_data(user_ip, file_name, data){
+    
+}
+
 /**
  * adds uploaded user func to user_reqs
  * Note: func is an object carrying the map and reduce functions.

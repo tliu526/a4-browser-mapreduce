@@ -1,5 +1,5 @@
 /**
- * The volunteer javascript functions that will be run.
+ * The volunteer Javascript functions that will be run.
  * (c) 2016 Tony Liu, Michael Shaw.
  */
 

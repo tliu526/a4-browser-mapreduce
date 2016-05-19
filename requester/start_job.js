@@ -55,7 +55,7 @@ function send_post(message){
                 var response = xmlhttp.responseText.split(",");
                 var map_percent = parseInt(response[0]);
                 var red_percent = parseInt(response[1]);
-                job_id = parseInt(response[2]);
+                job_id = response[2];
                 if(map_percent == 100 && red_percent == 100){
                     var download_button = document.getElementById("download");
                     download_button.disabled = false;
@@ -103,7 +103,7 @@ function check_job_status(){
 /**
 * Downloads output from a job
 */
-function download_output(job_id) {
+function download_output() {
     var downloadPost = createCORSRequest('POST','/');
     var body = 'job_id=' + job_id;
     downloadPost.send(body);

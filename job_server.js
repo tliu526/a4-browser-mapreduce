@@ -418,7 +418,10 @@ function add_user_txt_data(user_ip, file_name, data){
     if (!(user_ip in user_requests)) {
          user_requests[user_ip] = new structs.Task(user_ip);
     }
-    var list = user_request[user_ip]['data'];
+    if (typeof user_requests[user_ip]['data'] == 'undefined') {
+        user_requests[user_ip]['data'] = [];
+    }
+    var list = user_requests[user_ip]['data'];
     list.push([file_name,data]);
     user_requests[user_ip]['data'] = list;
 }

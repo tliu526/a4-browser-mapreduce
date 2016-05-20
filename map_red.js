@@ -1,4 +1,4 @@
-/**
+/*
  * A MapReduce implementation built specifically for our architecture.
  * 
  * User specified function signatures:
@@ -223,7 +223,7 @@
             else if(this.num_reds > 0){
                 reds = 100;
             }
-            return maps + "," + reds + "," + this.id + "," + this.submitted;
+            return maps + "," + reds + "," + this.id + "," + this.is_submitted();
         }
 
         /**
@@ -231,6 +231,10 @@
          */
         this.is_complete = function(){
             return this.complete;
+        };
+
+        this.is_submitted = function() {
+            return this.submitted;
         };
 
         /**

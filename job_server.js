@@ -415,7 +415,12 @@ function add_user_json_data(user_ip, data){
  * as an entry in data as a [filename, text] tuple. 
  */
 function add_user_txt_data(user_ip, file_name, data){
-    
+    if (!(user_ip in user_requests)) {
+         user_requests[user_ip] = new structs.Task(user_ip);
+    }
+    var list = user_request[user_ip]['data'];
+    list.push([file_name,data]);
+    user_requests[user_ip]['data'] = list;
 }
 
 /**
@@ -526,8 +531,7 @@ function write_output(out_name){
             }
         }
     }
-
-
+    
     var num_vols = Object.keys(avail_volunteers).length;
     console.log("There are currently " +  num_vols + " volunteers available");
 

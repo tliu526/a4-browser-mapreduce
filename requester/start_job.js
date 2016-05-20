@@ -23,8 +23,6 @@ function submit_forms(){
     data += red_form.name + "=" + map_form.value;
     var xhr = createCORSRequest("POST", "/");
 
-
-
     if(xhr){
         xhr.onreadystatechange = function() {
             if (xhr.readyState == XMLHttpRequest.DONE) {
@@ -35,7 +33,6 @@ function submit_forms(){
     }
 
     xhr.send(data);
-
 }
 
 
@@ -54,7 +51,7 @@ function send_post(message){
                 var map_percent = parseInt(response[0]);
                 var red_percent = parseInt(response[1]);
                 job_id = response[2];
-                var submitted = response[3];
+                var submitted = Boolean(response[3]);
 
                 if(map_percent == 100 && red_percent == 100 && submitted){
                     var download_button = document.getElementById("download");
@@ -102,7 +99,7 @@ function check_job_status(){
 
 
 /**
-* Downloads output from a job
+* Downloads output from a job and opens it in a new window
 */
 function download_output() {
     var downloadPost = createCORSRequest('POST','/');
@@ -113,12 +110,17 @@ function download_output() {
                 //TODO actually open window/download the file
                 var output = downloadPost.responseText;
                 var outputWindow = window.open("","OutputWindow");
-                //while (outputWindow.readyState != 'complete') {}
-                outputWindow.document.title = "Output";
-                outputWindow.document.write("<p>" + output + "</p>");
-                //console.log(downloadPost.responseText);
+                write_window(outputWindow,output);
             }
     };
+
+    function write_window(newWindow,output) {
+        if (newWindow.document) {
+            newWindow.document.write("<p>" + output + "</p>");
+            newWindow.document.title = 'Output';
+        }
+        else setTimeout(write_window,10);
+    }
 
     downloadPost.send(body);
 }

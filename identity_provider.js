@@ -183,9 +183,9 @@ else {
                 send_response(token,expire,true,responsePath);
             }
         }
+        db.close();
     });
-
-    db.close();
+    
 }
 
 /**

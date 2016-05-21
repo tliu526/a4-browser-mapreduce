@@ -16,7 +16,10 @@ module.exports = {
 	* Aggregates all files in which a word is found
 	*/
 	reduce: function(k,l) {
-		return l;
+		var unique_list = l.filter(function(elem, pos) {
+    		return l.indexOf(elem) == pos;
+		})
+		return unique_list;
 	}
 
 }

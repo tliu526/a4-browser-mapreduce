@@ -106,14 +106,11 @@ function download_output() {
     var downloadPost = createCORSRequest('POST','/');
     var body = 'job_id=' + job_id;
 
-    var outputWindow = window.open("","OutputWindow");
-
 
     downloadPost.onreadystatechange = function() {
             if (downloadPost.readyState == XMLHttpRequest.DONE) {
-                //TODO actually open window/download the file
                 var output = downloadPost.responseText;
-                //var outputWindow = window.open("","OutputWindow");
+                var outputWindow = window.open("","OutputWindow");
                 write_window(outputWindow,output);
             }
     };
@@ -123,7 +120,7 @@ function download_output() {
             newWindow.document.write("<p>" + output + "</p>");
             newWindow.document.title = 'Output';
         }
-        else setTimeout(write_window,10);
+        else setTimeout(write_window,1);
     }
 
     downloadPost.send(body);

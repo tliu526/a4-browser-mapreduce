@@ -51,6 +51,8 @@ function process_task(){
             out = out.concat(func(k, v));
         }
     }
+
+    //reduce task
     else if(id.substring(0,1) == 'r'){
         for (var i = 0; i < data.length; i++){
             var k = data[i][0];

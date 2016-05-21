@@ -18,7 +18,7 @@ module.exports = {
 	* Aggregates all files in which a word is found
 	*/
 	reduce: function(k,l) {
-		return [k,l];
+		return l;
 	}
 
 }

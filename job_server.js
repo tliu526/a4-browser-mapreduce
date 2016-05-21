@@ -250,7 +250,7 @@ else {
                 });
                 response.end(content);   
             }
-
+            
             /** CASE 4: Volunteer output received **/
             else if(post.task_id != null){
                 console.log('volunteer data received');

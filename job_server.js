@@ -22,7 +22,6 @@ var util = require('util');
 var JOBS_DB = 'jobs.db';
 var exists = fs.existsSync(JOBS_DB);
 var sqlite3 = require('sqlite3').verbose();
-var escape = require('escape-html');
 
 //signature requirements
 var select = require('xml-crypto').xpath;
@@ -237,6 +236,7 @@ else {
                 console.log('volunteer task request received');
 
                 var content = process_volunteer_request();
+                console.log(content);
                 //we have an idle volunteer, with no tasks outstanding
                 if(content == NO_TASK){
                     //NOTE, returns undefined when testing locally
@@ -244,7 +244,7 @@ else {
                 }
 
                 response.writeHead(200, {
-                    'Content-Type' : 'text/html',
+                    'Content-Type' : 'text/plain',
                     'Content-Length' : content.length,
                     'Expires' : new Date().toUTCString(),
                     'Access-Control-Allow-Origin' : '*'
@@ -419,9 +419,9 @@ function add_user_json_data(user_ip, data){
 function add_user_txt_data(user_ip, file_name, data){
 
     //need to escape html characters
-    //data = escape(data);
-    //console.log("escaped data:");
-    //console.log(data);
+    data = escape_html(data);
+    console.log("escaped data:");
+    console.log(data);
     if (!(user_ip in user_requests)) {
          user_requests[user_ip] = new structs.Task(user_ip);
     }
@@ -633,6 +633,23 @@ function check_jobs(){
         console.log(cur_job.print_progress());
     }
     setTimeout(check_jobs, 3000);
+}
+
+/**
+ * Convert html escaped strings
+ */
+function escape_html(str){
+    str = str.split("<").join("");
+    str = str.split(">").join("");
+    str = str.split("&").join("");
+    str = str.split("{").join("");
+    str = str.split("}").join("");
+    str = str.split("\\").join("");
+    str = str.split("_").join("");
+    str = str.split("\"").join("");
+    str = str.split("[").join("");
+    str = str.split("]").join("");
+    return str;
 }
 
 function test(){

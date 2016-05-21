@@ -33,9 +33,11 @@ const NO_TASK = "DONE"; //the xhr text when there are no outstanding tasks.
  * references outside of this scope can be made.
  */
 function process_task(){
-    console.log(document.getElementById("data").innerHTML);
+    //debugging
+
     var data = JSON.parse(document.getElementById("data").innerHTML);
-    console.log(data);
+
+    //console.log(data);
     //uh-oh eval
     var func = eval("(" + html_format(document.getElementById("task").innerHTML) + ")");
     console.log(func);
@@ -63,7 +65,7 @@ function process_task(){
     }
 
     var out_str = html_escape(JSON.stringify(out));
-    console.log(out_str);
+    //console.log(out_str);
     var response = "task_id=" + id + "&" + "result=" + out_str;
     
     //display results to volunteer
@@ -111,9 +113,8 @@ function send_post(message){
             if (xmlhttp.readyState == XMLHttpRequest.DONE) {
                 var response = xmlhttp.responseText;
                 if(response != NO_TASK){
-                    //var script = document.createElement("script");
-                    //document.getElementsByTagName('head')[0].appendChild(script);
-
+                    //debuggin
+                    document.getElementById("debug").innerHTML += xmlhttp.responseText;
                     //the returned tuple from process_volunteer_output
                     var task = JSON.parse(xmlhttp.responseText);
 

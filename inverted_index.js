@@ -1,6 +1,4 @@
 module.exports = {
-	
-
 	/**
 	* Maps words in v to the file in which they are found
 	*/

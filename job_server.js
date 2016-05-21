@@ -22,6 +22,7 @@ var util = require('util');
 var JOBS_DB = 'jobs.db';
 var exists = fs.existsSync(JOBS_DB);
 var sqlite3 = require('sqlite3').verbose();
+var escape = require('escape-html');
 
 //signature requirements
 var select = require('xml-crypto').xpath;
@@ -256,6 +257,7 @@ else {
                 console.log('volunteer data received');
                 var task_id = post.task_id;
                 var data = post.result;
+                console.log(data);
                 var data = JSON.parse(data);
                 var content = process_volunteer_output(task_id, data);
 
@@ -415,6 +417,11 @@ function add_user_json_data(user_ip, data){
  * as an entry in data as a [filename, text] tuple. 
  */
 function add_user_txt_data(user_ip, file_name, data){
+
+    //need to escape html characters
+    //data = escape(data);
+    //console.log("escaped data:");
+    //console.log(data);
     if (!(user_ip in user_requests)) {
          user_requests[user_ip] = new structs.Task(user_ip);
     }
@@ -424,6 +431,9 @@ function add_user_txt_data(user_ip, file_name, data){
     var list = user_requests[user_ip]['data'];
     list.push([file_name,data]);
     user_requests[user_ip]['data'] = list;
+
+    console.log("Text data list:");
+    console.log(list);
 }
 
 /**
@@ -496,7 +506,8 @@ function write_output(out_name){
     if (cur_job.is_complete()) {
         var db = new sqlite3.Database(JOBS_DB);
         var stmt = 'UPDATE JOBS SET ISCOMPLETE = \'TRUE\', OUTPUT = ? WHERE ID = ?;';
-        var data = structs.escape_sql_str(JSON.stringify(cur_job.get_output()));  
+        //var data = structs.escape_sql_str(JSON.stringify(cur_job.get_output()));  
+        var data = JSON.stringify(cur_job.get_output());  
         db.run(stmt, data, cur_job.id,function(err) {
             if (err != null) {
                 console.log('An error occured while submitting job output');

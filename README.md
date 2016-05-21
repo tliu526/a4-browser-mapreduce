@@ -22,3 +22,4 @@ npm packages currently installed:
 - xmldom
 - formidable (for parsing file uploads)
 - http
+- escape-html

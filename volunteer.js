@@ -61,7 +61,8 @@ function process_task(){
         }
     }
 
-    var out_str = JSON.stringify(out);
+    var out_str = html_escape(JSON.stringify(out));
+    console.log(out_str);
     var response = "task_id=" + id + "&" + "result=" + out_str;
     
     //display results to volunteer
@@ -79,6 +80,18 @@ function process_task(){
 function html_format(str){
     str = str.split("&lt;").join("<");
     str = str.split("&gt;").join(">");
+    str = str.split("&amp;").join("&");
+    console.log(str);
+    return str;
+}
+
+/**
+ * Convert html escaped strings
+ */
+function html_escape(str){
+    str = str.split("<").join("&lt;");
+    str = str.split(">").join("&gt;");
+    str = str.split("&").join(" ");
     console.log(str);
     return str;
 }

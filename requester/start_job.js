@@ -98,30 +98,25 @@ function check_job_status(){
     setTimeout(check_job_status, 1000);
 }
 
-
 /**
-* Downloads output from a job and opens it in a new window
-*/
+* Downloads output from a job and displays it
+*/ 
 function download_output() {
+    document.write("<p>Loading output...</p>");
+
     var downloadPost = createCORSRequest('POST','/');
     var body = 'job_id=' + job_id;
 
-
     downloadPost.onreadystatechange = function() {
-            if (downloadPost.readyState == XMLHttpRequest.DONE) {
-                var output = downloadPost.responseText;
-                var outputWindow = window.open("","OutputWindow");
-                write_window(outputWindow,output);
-            }
-    };
-
-    function write_window(newWindow,output) {
-        if (newWindow.document) {
-            newWindow.document.write("<p>" + output + "</p>");
-            newWindow.document.title = 'Output';
+        console.log('here');
+        if (downloadPost.readyState == XMLHttpRequest.DONE) {
+            console.log('here2');
+            var output = downloadPost.responseText;
+            document.write("<p>" + output + "</p>");
         }
-        else setTimeout(write_window,1);
-    }
+    };
 
     downloadPost.send(body);
 }
+
+

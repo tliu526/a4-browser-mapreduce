@@ -1,4 +1,4 @@
-/*
+/**
  * A MapReduce implementation built specifically for our architecture.
  * 
  * User specified function signatures:
@@ -27,7 +27,6 @@
         this.map_tasks = new structs.Queue();
         this.red_tasks = new structs.Queue();
         this.complete = false;
-        this.submitted = false;
 
         this.num_m_tasks = num_m_tasks;
         this.num_r_tasks = num_r_tasks;
@@ -60,7 +59,7 @@
                 var map_id = 'm' + i;
                 var map_str = map.toString();
                 var t = new structs.Task(map_id, map_str, data_list[i]);
-                this.insert_task(t);
+                //this.insert_task(t);
                 this.map_tasks.enq(t);
                 this.map_todo.push(map_id);
             }
@@ -116,7 +115,7 @@
             for(var i = 0; i < data_list.length; i++){
                 var red_id = 'r' + i;
                 var t = new structs.Task(red_id, reduce.toString(), data_list[i]);
-                this.insert_task(t);
+                //this.insert_task(t);
                 this.red_tasks.enq(t);
                 this.red_todo.push(red_id);
             }
@@ -223,7 +222,7 @@
             else if(this.num_reds > 0){
                 reds = 100;
             }
-            return maps + "," + reds + "," + this.id + "," + this.is_submitted();
+            return maps + "," + reds + "," + this.id;
         }
 
         /**
@@ -231,10 +230,6 @@
          */
         this.is_complete = function(){
             return this.complete;
-        };
-
-        this.is_submitted = function() {
-            return this.submitted;
         };
 
         /**

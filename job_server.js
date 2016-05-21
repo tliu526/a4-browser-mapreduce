@@ -257,7 +257,7 @@ else {
                 console.log('volunteer data received');
                 var task_id = post.task_id;
                 var data = post.result;
-                console.log(data);
+                console.log("data: " + data.toString());
                 var data = JSON.parse(data);
                 var content = process_volunteer_output(task_id, data);
 
@@ -428,12 +428,10 @@ function add_user_txt_data(user_ip, file_name, data){
     if (typeof user_requests[user_ip]['data'] == 'undefined') {
         user_requests[user_ip]['data'] = [];
     }
-    var list = user_requests[user_ip]['data'];
-    list.push([file_name,data]);
-    user_requests[user_ip]['data'] = list;
-
-    console.log("Text data list:");
-    console.log(list);
+    //var list = user_requests[user_ip]['data'];
+    user_requests[user_ip]['data'].push([file_name,data]);
+//    list.push([file_name,data]);
+//    user_requests[user_ip]['data'] = list;
 }
 
 /**

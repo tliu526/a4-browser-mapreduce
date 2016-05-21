@@ -33,6 +33,9 @@ function submit_forms(){
     }
 
     xhr.send(data);
+
+
+
 }
 
 
@@ -51,11 +54,9 @@ function send_post(message){
                 var map_percent = parseInt(response[0]);
                 var red_percent = parseInt(response[1]);
                 job_id = response[2];
-                var submitted = Boolean(response[3]);
-
-                if(map_percent == 100 && red_percent == 100 && submitted){
+                if(map_percent == 100 && red_percent == 100){
+                    console.log("Enabling download");
                     var download_button = document.getElementById("download");
-                    console.log('enabling button');
                     download_button.disabled = false;
                 }
 
@@ -99,31 +100,18 @@ function check_job_status(){
 
 
 /**
-* Downloads output from a job and opens it in a new window
+* Downloads output from a job
 */
 function download_output() {
     var downloadPost = createCORSRequest('POST','/');
     var body = 'job_id=' + job_id;
 
-    var outputWindow = window.open("","OutputWindow");
-
-
     downloadPost.onreadystatechange = function() {
             if (downloadPost.readyState == XMLHttpRequest.DONE) {
                 //TODO actually open window/download the file
-                var output = downloadPost.responseText;
-                //var outputWindow = window.open("","OutputWindow");
-                write_window(outputWindow,output);
+                console.log(downloadPost.responseText);
             }
     };
-
-    function write_window(newWindow,output) {
-        if (newWindow.document) {
-            newWindow.document.write("<p>" + output + "</p>");
-            newWindow.document.title = 'Output';
-        }
-        else setTimeout(write_window,10);
-    }
 
     downloadPost.send(body);
 }

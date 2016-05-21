@@ -33,6 +33,7 @@ const NO_TASK = "DONE"; //the xhr text when there are no outstanding tasks.
  * references outside of this scope can be made.
  */
 function process_task(){
+    console.log(document.getElementById("data").innerHTML);
     var data = JSON.parse(document.getElementById("data").innerHTML);
     console.log(data);
     //uh-oh eval

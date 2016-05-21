@@ -100,18 +100,31 @@ function check_job_status(){
 
 
 /**
-* Downloads output from a job
+* Downloads output from a job and opens it in a new window
 */
 function download_output() {
     var downloadPost = createCORSRequest('POST','/');
     var body = 'job_id=' + job_id;
 
+    var outputWindow = window.open("","OutputWindow");
+
+
     downloadPost.onreadystatechange = function() {
             if (downloadPost.readyState == XMLHttpRequest.DONE) {
                 //TODO actually open window/download the file
-                console.log(downloadPost.responseText);
+                var output = downloadPost.responseText;
+                //var outputWindow = window.open("","OutputWindow");
+                write_window(outputWindow,output);
             }
     };
+
+    function write_window(newWindow,output) {
+        if (newWindow.document) {
+            newWindow.document.write("<p>" + output + "</p>");
+            newWindow.document.title = 'Output';
+        }
+        else setTimeout(write_window,10);
+    }
 
     downloadPost.send(body);
 }

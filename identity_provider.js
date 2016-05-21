@@ -147,7 +147,21 @@ else {
          });
 		    var body = "Added user: " + newUser;
 		    response.end(body);
-		}
+		
+  } else if (post.removeUser != null) {
+        //Case 4: Request to remove user from database
+        var user = post.removeUser;
+        console.log('Just received a request to remove a user. User to be removed: ' + post.removeUser);
+        remove_user(user);
+
+        //Respond with success message to job_server
+        response.writeHead(200, {
+             'Content-Type' : 'text/html',
+             'Access-Control-Allow-Origin': '*'
+         });
+        var body = "Removed user: " + user;
+        response.end(body);
+  }
    });
 }
 }
@@ -229,6 +243,21 @@ else {
   });
 }
 
+/**
+* Removes a given user from the database
+*/
+function remove_user(user) {
+  var db = new sqlite3.Database(file);
+  var stmt = 'DELETE FROM USERS WHERE ID = ?';
+  db.run(stmt,user,function(err) {
+    if (err != null) {
+      console.log('An error occured while removing a user');
+    } else {
+      console.log('Successfully removed user: ' + user);
+    }
+    db.close();
+  });
+}
 
 /**
  * Deletes all users whose authentication tokens have expired

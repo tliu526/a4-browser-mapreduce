@@ -22,3 +22,23 @@ npm packages currently installed:
 - xmldom
 - formidable (for parsing file uploads)
 - http
+- fs
+
+## How to run
+
+Job server: 
+	node job_server
+Identity provider:
+	node identity_provider
+Navigate to:
+	bmr-cs339/rhcloud.com 
+
+## How to commit a Signature wrapping attack
+
+1) Start the system as described above
+2) Click 'Access resources' and provide any value for the token
+3) When the identity provider prompts you to press a button to return to the job server, instead of clicking it view the HTML source of the page. Copy the value of SAMLResponse stored in the button's code.
+4) Launch malicious_user.js with the copied SAMLResponse as a command line argument
+	node malicious_user [SAMLResponse]
+5) Navigate to the provided URL and click the button that is displayed. You now have access. 
+

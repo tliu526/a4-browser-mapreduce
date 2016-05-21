@@ -34,8 +34,6 @@ function submit_forms(){
 
     xhr.send(data);
 
-
-
 }
 
 
@@ -55,7 +53,7 @@ function send_post(message){
                 var red_percent = parseInt(response[1]);
                 job_id = response[2];
                 if(map_percent == 100 && red_percent == 100){
-                    console.log("Enabling download");
+                    console.log("Enabling download output button");
                     var download_button = document.getElementById("download");
                     download_button.disabled = false;
                 }

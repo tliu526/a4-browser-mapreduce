@@ -28,6 +28,8 @@
         this.red_tasks = new structs.Queue();
         this.complete = false;
 
+        this.start_time = 0;
+
         this.num_m_tasks = num_m_tasks;
         this.num_r_tasks = num_r_tasks;
 
@@ -63,7 +65,6 @@
                 this.map_tasks.enq(t);
                 this.map_todo.push(map_id);
             }
-
 
             this.num_maps = data_list.length;
             return data_list.length;
@@ -174,6 +175,12 @@
                     temp_dict[key].push(val);
                 }
                 else{
+
+                    if(!(temp_dict[key] instanceof Array)){
+                        console.log("mid_group");
+                        console.log(key);
+                        console.log(temp_dict[key].toString());
+                    }
                     temp_dict[key].push(val);
                 }
             }

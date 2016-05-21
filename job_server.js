@@ -62,7 +62,6 @@ else {
     idp_root_url = IDP_URL;
 }
 
-
 /**
  * Handles the requests sent to the webserver.
  * TODO actually handle requests
@@ -236,7 +235,7 @@ else {
                 console.log('volunteer task request received');
 
                 var content = process_volunteer_request();
-                console.log(content);
+                //console.log(content);
                 //we have an idle volunteer, with no tasks outstanding
                 if(content == NO_TASK){
                     //NOTE, returns undefined when testing locally
@@ -257,7 +256,7 @@ else {
                 console.log('volunteer data received');
                 var task_id = post.task_id;
                 var data = post.result;
-                console.log("data: " + data.toString());
+                //console.log("data: " + data.toString());
                 var data = JSON.parse(data);
                 var content = process_volunteer_output(task_id, data);
 
@@ -395,6 +394,7 @@ else {
 
 var jobs = new structs.Queue(); //A queue of jobs managed by the job server
 var cur_job = null;
+var start_time = 0;
 
 //a dict of partial user requests
 var user_requests = {};
@@ -421,7 +421,7 @@ function add_user_txt_data(user_ip, file_name, data){
     //need to escape html characters
     data = escape_html(data);
     console.log("escaped data:");
-    console.log(data);
+    //console.log(data);
     if (!(user_ip in user_requests)) {
          user_requests[user_ip] = new structs.Task(user_ip);
     }
@@ -458,6 +458,7 @@ function submit_job(task, num_maps, num_reds){
     var job = new map_red.Job(funcs.map, funcs.reduce, data, num_maps, num_reds);
     job.insert_job();
     jobs.enq(job);
+    start_time = new Date().getTime();
 }
 
 /**
@@ -516,6 +517,9 @@ function write_output(out_name){
             }   
             db.close();
         });      
+
+
+        console.log("Time spent for map_reduce jobs: " + ((new Date().getTime() - start_time)/1000));
     }
 }
 

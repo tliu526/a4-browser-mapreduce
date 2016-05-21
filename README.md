@@ -2,7 +2,7 @@
 
 One of the goals with this project is to implement a collaborative in-browser computation system with volunteers and job requesters. Participants can open a specified URL to contribute CPU cycles to an ongoing computation. We're currently utilizing a MapReduce framework as a proof of concept, but in theory any sort of computational work can be distributed across the compute nodes. 
 
-We are also implementing an authentication service that allows users to make use of the shared resources. The idea is that if users become volunteers, they then get access to an authentication token that allows them to submit MapReduce jobs to the cluster. These tokens are verified through an identity provider utilizing the SAML protocol. Another goal of this project is to simulate how real-world users might exploit vulnerabilities in SAML libraries to gain unauthorized access.
+We are also implementing an authentication service that allows users to make use of the shared resources. The idea is that if users become volunteers, they then get access to an authentication token that allows them to submit MapReduce jobs to the cluster. These tokens are verified through an identity provider utilizing the SAML protocol. Another goal of this project is to simulate how real-world users might exploit vulnerabilities in SAML libraries to gain unauthorized access. We do this by simulating a man-in-the-middle attack in which a user alters a SAML document to get access to our system's resources despite not having been authenticated.
 
 Questions?
 Email tl4@williams.edu or mgs1@williams.edu
@@ -24,14 +24,14 @@ npm packages currently installed:
 - http
 - fs
 
+
 ## How to run
 
-Job server: 
-	node job_server
-Identity provider:
-	node identity_provider
-Navigate to:
-	bmr-cs339/rhcloud.com 
+1) Start the job server: node job_server
+2) Start the identity provider: node identity_provider
+3a) Navigate to: http://localhost:8889
+3b) Alternatively, we have a version running online at http://bmr-cs339/rhcloud.com 
+
 
 ## How to commit a Signature wrapping attack
 

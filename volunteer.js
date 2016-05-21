@@ -84,7 +84,7 @@ function html_format(str){
     str = str.split("&lt;").join("<");
     str = str.split("&gt;").join(">");
     str = str.split("&amp;").join("&");
-    console.log(str);
+    //console.log(str);
     return str;
 }
 
@@ -95,7 +95,7 @@ function html_escape(str){
     str = str.split("<").join("&lt;");
     str = str.split(">").join("&gt;");
     str = str.split("&").join(" ");
-    console.log(str);
+    //console.log(str);
     return str;
 }
 
@@ -113,10 +113,10 @@ function send_post(message){
             if (xmlhttp.readyState == XMLHttpRequest.DONE) {
                 var response = xmlhttp.responseText;
                 if(response != NO_TASK){
-                    //debuggin
-                    document.getElementById("debug").innerHTML += xmlhttp.responseText;
+                    //debugging
+                    //document.getElementById("debug").innerHTML = fix_str(response);
                     //the returned tuple from process_volunteer_output
-                    var task = JSON.parse(xmlhttp.responseText);
+                    var task = JSON.parse(fix_str(response));
 
                     document.getElementById("task_id").innerHTML = task['id'];
                     document.getElementById("data").innerHTML = task['data'];
@@ -157,6 +157,18 @@ function request_task(){
         send_post(TASK_REQ);        
     }
     setTimeout(request_task, 3000);
+}
+
+/**
+ * Fixes incorrectly formatted JSON objects
+ */
+function fix_str(str){
+    if(str.includes("]]\"}")){
+        return str;
+    }
+    else{
+        return str + "\\\"]]\"}";
+    }
 }
 
 request_task();

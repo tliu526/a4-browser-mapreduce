@@ -543,8 +543,8 @@ function write_output(out_name){
     for( var key in avail_volunteers){
         if(avail_volunteers.hasOwnProperty(key)){
             if ((cur_time - avail_volunteers[key][0]) > LIFETIME) {
-                delete avail_volunteers[key];
                 send_remove_request(avail_volunteers[key][1]);
+                delete avail_volunteers[key];
             }
         }
     }

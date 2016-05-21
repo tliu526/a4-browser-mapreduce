@@ -514,10 +514,10 @@ function write_output(out_name){
  * Maintains and updates the avail_volunteers dict.
  * (K,V) = (IP, timestamp). We remove entries that are stale.
  */
- function add_volunteer(ips){
+ function add_volunteer(ips,token){
     if(ips != undefined){
         var ip = ips.split(", ")[0];
-        avail_volunteers[ip] = Date.now();
+        avail_volunteers[ip] = [Date.now(),token];
     }
 }
 
@@ -529,8 +529,9 @@ function write_output(out_name){
 
     for( var key in avail_volunteers){
         if(avail_volunteers.hasOwnProperty(key)){
-            if ((cur_time - avail_volunteers[key]) > LIFETIME) {
+            if ((cur_time - avail_volunteers[key][0]) > LIFETIME) {
                 delete avail_volunteers[key];
+                send_remove_request(avail_volunteers[key][1]);
             }
         }
     }
@@ -540,6 +541,19 @@ function write_output(out_name){
 
     return num_vols;
 }
+
+/**
+* Tells the IDP to remove an expired user from the database
+*/
+function send_remove_request(token) {
+    http.post(idp_root_url,{ removeUser: token}, function(res) {
+        //response.setEncoding('utf8');
+        res.on('data',function(chunk) {
+            //console.log(chunk);
+        });
+    });
+}
+
 
 function download_output(jobId, callback) {
     var db = new sqlite3.Database(JOBS_DB);

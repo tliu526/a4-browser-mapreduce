@@ -280,11 +280,11 @@ function remove_user(user) {
 function main() {
     //Add a new user to the DB and print out their authentication token
     //Expires after 300 seconds
-    var now = new Date().getTime();
-    console.log('New token: ' + now);
-    var expires = now + 300000;
-    console.log('Expires: ' + expires);
-    add_new_user(now,expires);
+    // var now = new Date().getTime();
+    // console.log('New token: ' + now);
+    // var expires = now + 300000;
+    // console.log('Expires: ' + expires);
+    // add_new_user(now,expires);
 
     //Clear expired users from the database
     clear_expired_users();

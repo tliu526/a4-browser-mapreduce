@@ -33,6 +33,11 @@ npm packages currently installed:
 3b) Alternatively, we have a version running online at http://bmr-cs339/rhcloud.com 
 
 
+## Demo
+
+We provide the tools for a sample MapReduce job in the demo folder. This folder contains Map and Reduce functions that get the word count of each word in a document. These functions are written in word_count.js. The demo folder also contains sentences.json, which is a short collection of sentences on which functions in word_count.js can be run.
+
+
 ## How to commit a Signature wrapping attack
 
 1) Start the system as described above

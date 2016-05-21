@@ -8,7 +8,6 @@
 //"Include" statements
 var http = require('http');
 http.post = require('http-post');
-var url = require('url');
 var qs = require('querystring');
 var structs = require('./structs');
 var map_red = require('./map_red');
@@ -608,7 +607,7 @@ function main(){
     }
     
     check_jobs();
-    //check_volunteers();
+    check_volunteers();
 }
 
 
